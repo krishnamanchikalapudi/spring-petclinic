@@ -28,7 +28,7 @@ export DOCKER_MANIFEST="list.manifest-${BUILD_ID}.json"  DOCKER_SPEC_BUILD_PUBLI
 # https://wiki.jenkins.io/JENKINS/Building+a+software+project 
 
 echo " BUILD_NAME: $BUILD_NAME \n BUILD_ID: $BUILD_ID \n JFROG_CLI_LOG_LEVEL: $JFROG_CLI_LOG_LEVEL  \n RT_REPO_MVN_VIRTUAL: $RT_REPO_MVN_VIRTUAL  \n RT_REPO_DOCKER_VIRTUAL: $RT_REPO_DOCKER_VIRTUAL \n"
-jf mvnc --global --repo-resolve-releases ${RT_REPO_MVN_VIRTUAL} --repo-resolve-snapshots ${RT_REPO_MVN_VIRTUAL} 
+jf mvnc --global --repo-resolve-releases ${RT_REPO_VIRTUAL} --repo-resolve-snapshots ${RT_REPO_VIRTUAL} --repo-deploy-releases ${RT_REPO_VIRTUAL} --repo-deploy-snapshots ${RT_REPO_VIRTUAL}
 
 ## Create Build
 echo "\n\n**** MVN: Package ****\n\n" # --scan=true

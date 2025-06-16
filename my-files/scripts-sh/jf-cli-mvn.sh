@@ -33,7 +33,7 @@ export BUILD_NAME="spring-petclinic" BUILD_ID="mvn.$(date '+%Y-%m-%d-%H-%M')"
 
 echo " BUILD_NAME: $BUILD_NAME \n BUILD_ID: $BUILD_ID \n JF_SERVER_ID: ${JF_SERVER_ID} \n "
 
-jf mvnc --repo-deploy-releases ${RT_REPO_VIRTUAL} --repo-deploy-snapshots ${RT_REPO_VIRTUAL} --repo-resolve-releases ${RT_REPO_VIRTUAL} --repo-resolve-snapshots ${RT_REPO_VIRTUAL} 
+jf mvnc --global --repo-resolve-releases ${RT_REPO_VIRTUAL} --repo-resolve-snapshots ${RT_REPO_VIRTUAL} --repo-deploy-releases ${RT_REPO_VIRTUAL} --repo-deploy-snapshots ${RT_REPO_VIRTUAL}
 
 ## Create Build
 echo "\n\n**** MVN: Package ****\n\n" # --scan=true

@@ -1,7 +1,7 @@
 # base image https://hub.docker.com/layers/library/openjdk/17-jdk-alpine/
 # FROM openjdk:17-jdk-alpine
 # https://hub.docker.com/_/amazoncorretto/
-FROM psazuse.jfrog.io/krishnam-docker-virtual/amazoncorretto:17-alpine-jdk
+FROM psrbinstance2.jfrog.io/rbv2merative-docker-virtual/amazoncorretto:17-alpine-jdk
 
 # Set environment variables ref: https://docs.docker.com/build/building/variables/#env-usage-example
 ENV JAR_FILE=spring-petclinic-3.4.0-SNAPSHOT.jar
