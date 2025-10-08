@@ -79,13 +79,11 @@ jobs:
             tree .
             echo "Artifact version: ${{env.ARTIFACT_VERSION}}"
             echo "Artifact name: ${{env.ARTIFACT_NAME}}"
-            tree ./target
-            ls ./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar
 
         - name: "Package: Docker build and push"
           env:
             JAR_FILE: "./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
-            TAGS: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}},${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}},${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest,${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
+            TAGS: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
           run: |
             docker image build -f ./Dockerfile --build-arg JAR_FILE=${{env.JAR_FILE}} -t ${{env.TAGS}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push .
             
