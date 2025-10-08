@@ -9,9 +9,9 @@ ARG JAR_FILE
 
 WORKDIR /app
 
-COPY target/${JAR_FILE} /app/
+COPY ${JAR_FILE} /app/spring-petclinic.jar
 
 # Set the command to run the Spring Boot application
 # java -jar target/spring-petclinic-3.2.0-SNAPSHOT.jar --server.port=7080 
 # CMD java -jar ${JAR_FILE} 
-CMD ["java", "-jar", "${JAR_FILE}"]
+CMD ["java", "-jar", "spring-petclinic.jar"]
