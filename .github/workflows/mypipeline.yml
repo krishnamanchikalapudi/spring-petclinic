@@ -10,11 +10,13 @@ permissions:
   contents: read
   security-events: write # Required for uploading code scanning.
   attestations: write
+  pages: write
 env:
   BUILD_NAME: "spring-petclinic"
   JAVA_PROVIDER: 'corretto'
   JAVA_VERSION: '17'
   DOCKER_REGISTRY: 'docker.io'
+  DOCKER_ORG: 'krishnamanchikalapudi'
   DEFAULT_WORKSPACE: "${{github.workspace}}"  # /home/runner/work/spring-petclinic/spring-petclinic
 jobs:
   dockerPackage:
@@ -30,7 +32,7 @@ jobs:
               build-mode: none 
     env:
         BUILD_ID: "ga-${{github.run_number}}"
-        DOCKER_ORG: 'krishnamanchikalapudi'
+        
         DOCKER_BUILDX_PLATFORMS: 'linux/amd64,linux/arm64'
         DOCKER_METADATA_JSON: 'build-metadata.json'
     defaults:
@@ -111,6 +113,9 @@ jobs:
         #         ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
         #         ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
         #     push: true
+        - name: "Docker: image list"
+          run: |
+            docker image ls
 
         - name: "Docker: Extract metadata"
           run: |
@@ -127,7 +132,7 @@ jobs:
           continue-on-error: true
           uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
           with:
-            subject-name: '${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}'
+            subject-name: '${{env.DOCKER_REGISTRY}}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}'
             subject-digest: '${{ env.DOCKER_DIGEST }}'    # sha256:hex_digest
             github-token: ${{secrets.GITHUB_TOKEN}} 
             push-to-registry: true
@@ -157,3 +162,20 @@ jobs:
             echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
             echo "    - GitHub Attest:  ${{ env.DOCKER_DIGEST }} " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
+
+  dockerImageTest:
+    name: "Docker image test"
+    runs-on: ubuntu-latest
+    needs: dockerPackage
+    steps:
+      - name: "Docker: authentication" 
+        id: config-docker
+        uses: docker/login-action@v3      # ref https://github.com/marketplace/actions/docker-login
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{secrets.DOCKERHUB_PASSWORD }}
+
+      - name: "Pull image"
+        run: |
+          docker pull ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:latest
+
