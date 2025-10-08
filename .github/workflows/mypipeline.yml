@@ -114,10 +114,6 @@ jobs:
 
         - name: "Docker: Get image digest"
           run: |
-            echo "DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}} | cut -d'@' -f2)" >> $GITHUB_ENV
-            echo "Image digest: $DIGEST"
-            # echo "DOCKER_DIGEST=${DIGEST}" >> $GITHUB_ENV
-
             cat ${{env.DOCKER_METADATA_JSON}}
 
             imageDigest=$(cat "${{env.DOCKER_METADATA_JSON}}" | jq '.["containerimage.digest"]')
@@ -128,11 +124,11 @@ jobs:
           continue-on-error: true
           uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
           with:
-            subject-name: oci://${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}
-            # subject-path: ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
-            subject-digest: ${{ env.DOCKER_DIGEST }}
-            show-summary: true
+            subject-name: ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}
+            subject-digest: ${{ env.DOCKER_DIGEST }}    # sha256:hex_digest
             github-token: ${{secrets.GITHUB_TOKEN}} 
+            push-to-registry: true
+            show-summary: true
 
         - name: "Docker: Summary "
           run: |
