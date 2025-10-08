@@ -88,8 +88,8 @@ jobs:
             TAG11: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}" 
             TAG12: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}"
             TAG13: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
-            TAG20: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}::${{env.ARTIFACT_VERSION}}"
-            TAG21: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}::${{env.TODAYS_DATE}}"
+            TAG20: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
+            TAG21: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}"
             TAG22: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}"
             TAG23: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
           run: |
@@ -119,7 +119,7 @@ jobs:
             echo "# :ship: Docker: Summary :pushpin:" >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
-            echo " Build date: $(date) " >> $GITHUB_STEP_SUMMARY
+            echo " Build on: ${{env.TODAYS_DATE}} " >> $GITHUB_STEP_SUMMARY
             echo "    - $(java -v) " >> $GITHUB_STEP_SUMMARY
             echo "    - $(mvn -v) " >> $GITHUB_STEP_SUMMARY
             echo "    - $(docker -v) " >> $GITHUB_STEP_SUMMARY
