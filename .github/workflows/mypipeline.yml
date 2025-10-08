@@ -127,7 +127,10 @@ jobs:
           run: |
             cat ${{env.DOCKER_METADATA_JSON}}
 
-            imageDigest=$(cat "${{env.DOCKER_METADATA_JSON}}" | jq '.["containerimage.digest"]')
+            # Extract the container image digest as a raw string (no quotes) in the form sha256:<hex>
+            imageDigest=$(jq -r '.["containerimage.digest"]' "${{env.DOCKER_METADATA_JSON}}")
+            # Remove any leading/trailing whitespace just in case
+            imageDigest=$(echo "${imageDigest}" | tr -d '\r' | xargs)
             echo "DOCKER_DIGEST: ${imageDigest}"
             echo "DOCKER_DIGEST=${imageDigest}" >> $GITHUB_ENV
 
@@ -147,7 +150,7 @@ jobs:
             echo " " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
             echo " Build on: ${{env.TODAYS_DATE}} " >> $GITHUB_STEP_SUMMARY
-            echo " - Ubuntu latest installed with: " >> $GITHUB_STEP_SUMMARY
+            echo " - ubuntu-latest installed with: " >> $GITHUB_STEP_SUMMARY
             echo "    - $(java --version) " >> $GITHUB_STEP_SUMMARY
             echo "    - $(mvn -v) " >> $GITHUB_STEP_SUMMARY
             echo "    - $(docker -v) " >> $GITHUB_STEP_SUMMARY
