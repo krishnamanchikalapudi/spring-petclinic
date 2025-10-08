@@ -52,6 +52,7 @@ jobs:
           run: |
             echo "ARTIFACT_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
             echo "ARTIFACT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+            echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
         - name: "Docker: authentication" 
           id: config-docker
@@ -83,10 +84,17 @@ jobs:
         - name: "Package: Docker build and push"
           env:
             JAR_FILE: "./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
-            TAGS: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
+            TAG10: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
+            TAG11: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}" 
+            TAG12: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}"
+            TAG13: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
+            TAG20: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}::${{env.ARTIFACT_VERSION}}"
+            TAG21: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}::${{env.TODAYS_DATE}}"
+            TAG22: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}"
+            TAG23: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
           run: |
-            docker image build -f ./Dockerfile --build-arg JAR_FILE=${{env.JAR_FILE}} -t ${{env.TAGS}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push .
-            
+            docker image build -f ./Dockerfile --build-arg JAR_FILE=${{env.JAR_FILE}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push . --attest=type=sbom -t ${{env.TAG10}} -t ${{env.TAG11}} -t ${{env.TAG12}}  -t ${{env.TAG13}} -t ${{env.TAG20}} -t ${{env.TAG21}} -t ${{env.TAG22}} -t ${{env.TAG23}}
+
             cat ${{env.DOCKER_METADATA_JSON}}
 
         # - name: "Docker: Build and push"     # ref: https://docs.docker.com/reference/cli/docker/buildx/create/#platform
