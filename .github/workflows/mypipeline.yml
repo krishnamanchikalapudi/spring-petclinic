@@ -55,6 +55,7 @@ jobs:
             echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
         - name: "Docker: authentication" 
+          if: ${{ secrets.DOCKERHUB_USERNAME && secrets.DOCKERHUB_PASSWORD }}
           id: config-docker
           uses: docker/login-action@v3      # ref https://github.com/marketplace/actions/docker-login
           with:
@@ -80,6 +81,7 @@ jobs:
             tree .
 
         - name: "Docker: package and push"
+          if: ${{ secrets.DOCKERHUB_USERNAME && secrets.DOCKERHUB_PASSWORD }}
           env:
             JAR_FILE: "./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
             TAG10: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
@@ -113,17 +115,6 @@ jobs:
         #     push: true
 
         - name: "Docker: Extract metadata"
-          id: meta
-          uses: docker/metadata-action@v5   # ref:  https://github.com/docker/metadata-action
-          with:
-            tags: |
-              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
-              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
-              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-            images: ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}
-
-        - name: "Docker: Get image digest"
           run: |
             cat ${{env.DOCKER_METADATA_JSON}}
 
@@ -135,6 +126,7 @@ jobs:
             echo "DOCKER_DIGEST=${imageDigest}" >> $GITHUB_ENV
 
         - name: "Evidence: GitHub Attest for docker image"
+          if: ${{ secrets.DOCKERHUB_USERNAME && secrets.DOCKERHUB_PASSWORD }}
           continue-on-error: true
           uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
           with:
