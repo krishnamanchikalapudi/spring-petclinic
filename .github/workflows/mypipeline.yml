@@ -82,22 +82,31 @@ jobs:
             tree ./target
             ls ./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar
 
-        - name: "Docker: Build and push"     # ref: https://docs.docker.com/reference/cli/docker/buildx/create/#platform
-          uses: docker/build-push-action@v6  # https://github.com//docker/build-push-action  
+        - name: "Package: Docker build and push"
           env:
-            DOCKER_BUILD_SUMMARY: true
-          with:
-            build-args: |
-              JAR_FILE='./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar'
-            platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
-            context: .
-            file: ./Dockerfile
-            tags: |
-                ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
-                ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
-                ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-                ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-            push: true
+            JAR_FILE: "./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
+            TAGS: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}},${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}},${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest,${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
+          run: |
+            docker image build -f ./Dockerfile --build-arg JAR_FILE=${{env.JAR_FILE}} -t ${{env.TAGS}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push .
+            
+            cat ${{env.DOCKER_METADATA_JSON}}
+
+        # - name: "Docker: Build and push"     # ref: https://docs.docker.com/reference/cli/docker/buildx/create/#platform
+        #   uses: docker/build-push-action@v6  # https://github.com//docker/build-push-action  
+        #   env:
+        #     DOCKER_BUILD_SUMMARY: true
+        #   with:
+        #     build-args: |
+        #       JAR_FILE='./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar'
+        #     platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
+        #     context: .
+        #     file: ./Dockerfile
+        #     tags: |
+        #         ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
+        #         ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
+        #         ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
+        #         ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
+        #     push: true
 
         - name: "Docker: Summary "
           run: |
@@ -117,3 +126,6 @@ jobs:
             echo "    - Artifact Version: ${{env.ARTIFACT_VERSION}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
+
+  mvnPackage:
+    inc
