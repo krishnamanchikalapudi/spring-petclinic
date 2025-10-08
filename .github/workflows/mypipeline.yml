@@ -126,6 +126,3 @@ jobs:
             echo "    - Artifact Version: ${{env.ARTIFACT_VERSION}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
-
-  mvnPackage:
-    inc
