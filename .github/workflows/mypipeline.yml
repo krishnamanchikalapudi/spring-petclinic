@@ -1,0 +1,107 @@
+name: "CI Pipeline"
+on:
+  push:
+    branches: 
+      - '**'
+permissions:
+  actions: read # for detecting the Github Actions environment.
+  id-token: write # for creating OIDC tokens for signing.
+  packages: write # for uploading attestations.
+  contents: read
+  security-events: write # Required for uploading code scanning.
+  attestations: write
+env:
+  BUILD_NAME: "spring-petclinic"
+  JAVA_PROVIDER: 'corretto'
+  JAVA_VERSION: '17'
+  DOCKER_REGISTRY: 'docker.io'
+  DEFAULT_WORKSPACE: "${{github.workspace}}"  # /home/runner/work/spring-petclinic/spring-petclinic
+jobs:
+  dockerPackage:
+    name: "Docker package"
+    runs-on: ubuntu-latest
+    strategy:
+        fail-fast: false
+        matrix:
+            os: [ubuntu-latest]
+            java: [17]
+            include:
+            - language: ['java-kotlin']
+              build-mode: none 
+    env:
+        BUILD_ID: "ga-${{github.run_number}}"
+        DOCKER_ORG: 'krishnamanchikalapudi'
+        DOCKER_BUILDX_PLATFORMS: 'linux/amd64,linux/arm64'
+        DOCKER_METADATA_JSON: 'build-metadata.json'
+    defaults:
+       run:
+         working-directory: "${{env.DEFAULT_WORKSPACE}}"
+    steps:
+        - name: "Clone VCS"
+          uses: actions/checkout@v4 # ref: https://github.com/actions/checkout
+        
+        - name: "Java provider = ${{env.JAVA_PROVIDER}} with ver = ${{env.JAVA_VERSION}}"
+          uses: actions/setup-java@v4   # ref https://github.com/actions/setup-java
+          with:
+            distribution: ${{env.JAVA_PROVIDER}} # corretto
+            java-version: ${{env.JAVA_VERSION}}  # 17
+            cache: 'maven'
+            cache-dependency-path: 'pom.xml'
+        
+        - name: "Env vars and info"
+          run: |
+            echo "ARTIFACT_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+            echo "ARTIFACT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+
+        - name: "Docker: authentication" 
+          id: config-docker
+          uses: docker/login-action@v3      # ref https://github.com/marketplace/actions/docker-login
+          with:
+            registry: ${{env.DOCKER_REGISTRY}}
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+        - name: "Docker: Set up QEMU emulation"
+          uses: docker/setup-qemu-action@v3
+
+        - name: "Docker: Set up Buildx"
+          uses: docker/setup-buildx-action@v3   # ref: https://github.com/marketplace/actions/docker-setup-buildx
+          with:
+            use: true
+            platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
+            install: true
+
+        - name: "Docker: Build and push"     # ref: https://docs.docker.com/reference/cli/docker/buildx/create/#platform
+          uses: docker/build-push-action@v6  # https://github.com//docker/build-push-action  
+          env:
+            DOCKER_BUILD_SUMMARY: true
+          with:
+            build-args: |
+              JAR_FILE="${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
+            platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
+            context: .
+            file: ./Dockerfile
+            tags: |
+                ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
+                ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
+                ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
+                ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
+            push: true
+
+        - name: "Docker: Summary "
+          run: |
+            echo "# :ship: Docker: Summary :pushpin:" >> $GITHUB_STEP_SUMMARY
+            echo " " >> $GITHUB_STEP_SUMMARY
+            echo " " >> $GITHUB_STEP_SUMMARY
+            echo "    - $(java -v) " >> $GITHUB_STEP_SUMMARY
+            echo "    - $(mvn -v) " >> $GITHUB_STEP_SUMMARY
+            echo "    - $(docker -v) " >> $GITHUB_STEP_SUMMARY
+            echo " - Docker buildx configured with platforms: [${{env.DOCKER_BUILDX_PLATFORMS}}](https://docs.docker.com/reference/cli/docker/buildx/create/#platform) " >> $GITHUB_STEP_SUMMARY
+            echo " " >> $GITHUB_STEP_SUMMARY
+            echo " - Variables info" >> $GITHUB_STEP_SUMMARY
+            echo "    - Build Name: ${{env.BUILD_NAME}} " >> $GITHUB_STEP_SUMMARY
+            echo "    - Build ID: ${{env.BUILD_ID}} " >> $GITHUB_STEP_SUMMARY
+            echo "    - Artifact Name: ${{env.ARTIFACT_NAME}} " >> $GITHUB_STEP_SUMMARY
+            echo "    - Artifact Version: ${{env.ARTIFACT_VERSION}} " >> $GITHUB_STEP_SUMMARY
+            echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
+            echo " " >> $GITHUB_STEP_SUMMARY
