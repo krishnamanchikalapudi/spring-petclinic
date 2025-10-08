@@ -113,18 +113,26 @@ jobs:
         #     push: true
 
         - name: "Docker: Get image digest"
-          id: image-digest
           run: |
             echo "DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}} | cut -d'@' -f2)" >> $GITHUB_ENV
             echo "Image digest: $DIGEST"
-            echo "DOCKER_DIGEST=${DIGEST}" >> $GITHUB_ENV
-            echo "::set-output name=digest::$DIGEST"
+            # echo "DOCKER_DIGEST=${DIGEST}" >> $GITHUB_ENV
 
-        - name: "GitHub: Attest docker image"
-          uses: actions/attest-build-provenance@v2
+            cat ${{env.DOCKER_METADATA_JSON}}
+
+            imageDigest=$(cat "${{env.DOCKER_METADATA_JSON}}" | jq '.["containerimage.digest"]')
+            echo "DOCKER_DIGEST: ${imageDigest}"
+            echo "DOCKER_DIGEST=${imageDigest}" >> $GITHUB_ENV
+
+        - name: "Evidence: GitHub Attest for docker image"
+          continue-on-error: true
+          uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
           with:
             subject-name: oci://${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}
-            subject-digest: ${{ steps.image-digest.outputs.digest }}
+            # subject-path: ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
+            subject-digest: ${{ env.DOCKER_DIGEST }}
+            show-summary: true
+            github-token: ${{secrets.GITHUB_TOKEN}} 
 
         - name: "Docker: Summary "
           run: |
@@ -143,4 +151,5 @@ jobs:
             echo "    - Artifact Name: ${{env.ARTIFACT_NAME}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Artifact Version: ${{env.ARTIFACT_VERSION}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
+            echo "    - GitHub Attest:  ${{ steps.image-digest.outputs.digest }} " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
