@@ -112,6 +112,17 @@ jobs:
         #         ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
         #     push: true
 
+        - name: "Docker: Extract metadata"
+          id: meta
+          uses: docker/metadata-action@v5   # ref:  https://github.com/docker/metadata-action
+          with:
+            tags: |
+              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
+              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
+              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
+              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
+            images: ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}
+
         - name: "Docker: Get image digest"
           run: |
             cat ${{env.DOCKER_METADATA_JSON}}
@@ -124,8 +135,8 @@ jobs:
           continue-on-error: true
           uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
           with:
-            subject-name: ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}
-            subject-digest: ${{ env.DOCKER_DIGEST }}    # sha256:hex_digest
+            subject-name: '${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}'
+            subject-digest: '${{ env.DOCKER_DIGEST }}'    # sha256:hex_digest
             github-token: ${{secrets.GITHUB_TOKEN}} 
             push-to-registry: true
             show-summary: true
@@ -136,9 +147,14 @@ jobs:
             echo " " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
             echo " Build on: ${{env.TODAYS_DATE}} " >> $GITHUB_STEP_SUMMARY
+            echo " - Ubuntu latest installed with: " >> $GITHUB_STEP_SUMMARY
             echo "    - $(java --version) " >> $GITHUB_STEP_SUMMARY
             echo "    - $(mvn -v) " >> $GITHUB_STEP_SUMMARY
             echo "    - $(docker -v) " >> $GITHUB_STEP_SUMMARY
+            echo "    - $(python3 -V) " >> $GITHUB_STEP_SUMMARY
+            echo "    - $(pip3 -V) " >> $GITHUB_STEP_SUMMARY
+            echo "    - NPM version: $(npm -v) " >> $GITHUB_STEP_SUMMARY
+            echo "    - Node version: $(node -v) " >> $GITHUB_STEP_SUMMARY
             echo " - Docker buildx configured with platforms: [${{env.DOCKER_BUILDX_PLATFORMS}}](https://docs.docker.com/reference/cli/docker/buildx/create/#platform) " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
             echo " - Variables info" >> $GITHUB_STEP_SUMMARY
@@ -147,5 +163,5 @@ jobs:
             echo "    - Artifact Name: ${{env.ARTIFACT_NAME}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Artifact Version: ${{env.ARTIFACT_VERSION}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
-            echo "    - GitHub Attest:  ${{ steps.image-digest.outputs.digest }} " >> $GITHUB_STEP_SUMMARY
+            echo "    - GitHub Attest:  ${{ env.DOCKER_DIGEST }} " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
