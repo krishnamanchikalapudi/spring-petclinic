@@ -32,7 +32,6 @@ jobs:
               build-mode: none 
     env:
         BUILD_ID: "ga-${{github.run_number}}"
-        
         DOCKER_BUILDX_PLATFORMS: 'linux/amd64,linux/arm64'
         DOCKER_METADATA_JSON: 'build-metadata.json'
     defaults:
@@ -60,6 +59,7 @@ jobs:
           id: config-docker
           uses: docker/login-action@v3      # ref https://github.com/marketplace/actions/docker-login
           with:
+            registry: ${{ env.DOCKER_REGISTRY }}
             username: ${{ secrets.DOCKERHUB_USERNAME }}
             password: ${{secrets.DOCKERHUB_PASSWORD }}
 
@@ -76,6 +76,14 @@ jobs:
         - name: "Maven: package"
           run: |
             mvn clean package -DskipTests -Denforcer.skip
+
+        - name: "Evidence: GitHub Attest for JAR artifact"
+          continue-on-error: true
+          uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
+          with:
+            subject-path: "target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
+            github-token: ${{secrets.GITHUB_TOKEN}} 
+            show-summary: true
 
         - name: "Optional: list files"
           run: |
@@ -94,8 +102,6 @@ jobs:
             TAG23: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
           run: |
             docker image build -f ./Dockerfile --build-arg JAR_FILE=${{env.JAR_FILE}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push . --attest=type=sbom -t ${{env.TAG10}} -t ${{env.TAG11}} -t ${{env.TAG12}}  -t ${{env.TAG13}} -t ${{env.TAG20}} -t ${{env.TAG21}} -t ${{env.TAG22}} -t ${{env.TAG23}}
-
-            cat ${{env.DOCKER_METADATA_JSON}}
 
         # - name: "Docker: Build and push"     # ref: https://docs.docker.com/reference/cli/docker/buildx/create/#platform
         #   uses: docker/build-push-action@v6  # https://github.com//docker/build-push-action  
@@ -172,6 +178,7 @@ jobs:
         id: config-docker
         uses: docker/login-action@v3      # ref https://github.com/marketplace/actions/docker-login
         with:
+          registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{secrets.DOCKERHUB_PASSWORD }}
 
