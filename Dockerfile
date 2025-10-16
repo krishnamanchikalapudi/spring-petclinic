@@ -1,7 +1,9 @@
 # base image https://hub.docker.com/layers/library/openjdk/17-jdk-alpine/
 # FROM openjdk:17-jdk-alpine
 # https://hub.docker.com/_/amazoncorretto/
-FROM amazoncorretto:17-alpine-jdk
+# FROM amazoncorretto:25-jdk
+# https://hub.docker.com/_/eclipse-temurin
+FROM eclipse-temurin:25-jdk-alpine
 
 # Set environment variables ref: https://docs.docker.com/build/building/variables/#env-usage-example
 ARG JAR_FILE
