@@ -45,6 +45,7 @@ jobs:
             cache-dependency-path: 'pom.xml'
         
         - name: "Env vars and info"
+          id: set_var
           run: |
             echo "ARTIFACT_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
             echo "ARTIFACT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
