@@ -1,4 +1,4 @@
-name: "Docker Pipeline"
+name: "My Pipeline"
 on:
   push:
     branches: 
@@ -178,11 +178,19 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{secrets.DOCKERHUB_PASSWORD }}
 
-      - name: "Pull image"
+      - name: "Pull LATEST image"
         run: |
           docker pull ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:latest
 
-      - name: "Pull image"
+      - name: "Pull ${{needs.dockerPackage.outputs.TODAYS_DATE}} image"
         run: |
-          docker pull ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:latest
+          docker pull ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:${{needs.dockerPackage.outputs.TODAYS_DATE}}
 
+      - name: "Docker Test: Summary "
+        run: |
+          echo "# :ship: Docker: Pull Summary :pushpin:" >> $GITHUB_STEP_SUMMARY
+          echo " " >> $GITHUB_STEP_SUMMARY
+          echo " " >> $GITHUB_STEP_SUMMARY
+          echo " Pulled docker" >> $GITHUB_STEP_SUMMARY
+          echo " - ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:latest " >> $GITHUB_STEP_SUMMARY
+          echo " - ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:${{needs.dockerPackage.outputs.TODAYS_DATE}} " >> $GITHUB_STEP_SUMMARY
