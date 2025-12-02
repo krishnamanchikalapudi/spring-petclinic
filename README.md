@@ -14,7 +14,7 @@ See the presentation here:
 ## Run Petclinic locally
 
 Spring Petclinic is a [Spring Boot](https://spring.io/guides/gs/spring-boot) application built using [Maven](https://spring.io/guides/gs/maven/) or [Gradle](https://spring.io/guides/gs/gradle/).
-Java 25 or later is required for the build, but the application can run with Java 17 or newer:
+Java 17 or later is required for the build, and the application can run with Java 17 or newer:
 
 ```bash
 git clone https://github.com/spring-projects/spring-petclinic.git
@@ -60,13 +60,13 @@ A similar setup is provided for MySQL and PostgreSQL if a persistent database co
 You can start MySQL or PostgreSQL locally with whatever installer works for your OS or use docker:
 
 ```bash
-docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.2
+docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.5
 ```
 
 or
 
 ```bash
-docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.0
+docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.1
 ```
 
 Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
