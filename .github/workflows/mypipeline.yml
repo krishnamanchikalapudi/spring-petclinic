@@ -132,37 +132,20 @@ jobs:
         #   run: |
         #     docker image build -f ./Dockerfile --build-arg JAR_FILE=${{env.JAR_FILE}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push . --attest=type=sbom -t ${{env.TAG10}} -t ${{env.TAG11}} -t ${{env.TAG12}} -t ${{env.TAG13}} -t ${{env.TAG14}} -t ${{env.TAG20}} -t ${{env.TAG21}} -t ${{env.TAG22}} -t ${{env.TAG23}} -t ${{env.TAG24}}
             
-        # - name: "Docker: Build and push"     # ref: https://docs.docker.com/reference/cli/docker/buildx/create/#platform
-        #   uses: docker/build-push-action@v6  
-        #   env:
-        #     DOCKER_BUILD_SUMMARY: true
-        #   with:
-        #     build-args: |
-        #       JAR_FILE='./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar'
-        #     platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
-        #     context: .
-        #     file: ./Dockerfile
-        #     tags: |
-        #         ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
-        #         ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
-        #         ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-        #         ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-        #     push: true
-
         - name: "Docker: image list"
           run: |
             docker image ls
 
-        - name: "Docker: Extract metadata"
-          run: |
-            cat ${{env.DOCKER_METADATA_JSON}}
+        # - name: "Docker: Extract metadata"
+        #   run: |
+        #     cat ${{env.DOCKER_METADATA_JSON}}
 
-            # Extract the container image digest as a raw string (no quotes) in the form sha256:<hex>
-            imageDigest=$(jq -r '.["containerimage.digest"]' "${{env.DOCKER_METADATA_JSON}}")
-            # Remove any leading/trailing whitespace just in case
-            imageDigest=$(echo "${imageDigest}" | tr -d '\r' | xargs)
-            echo "DOCKER_DIGEST: ${imageDigest}"
-            echo "DOCKER_DIGEST=${imageDigest}" >> $GITHUB_ENV
+        #     # Extract the container image digest as a raw string (no quotes) in the form sha256:<hex>
+        #     imageDigest=$(jq -r '.["containerimage.digest"]' "${{env.DOCKER_METADATA_JSON}}")
+        #     # Remove any leading/trailing whitespace just in case
+        #     imageDigest=$(echo "${imageDigest}" | tr -d '\r' | xargs)
+        #     echo "DOCKER_DIGEST: ${imageDigest}"
+        #     echo "DOCKER_DIGEST=${imageDigest}" >> $GITHUB_ENV
 
         - name: "Evidence: GitHub Attest for docker image"
           continue-on-error: true
