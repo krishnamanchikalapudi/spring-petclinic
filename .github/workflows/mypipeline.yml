@@ -98,7 +98,7 @@ jobs:
             DOCKER_BUILD_SUMMARY: false
           with:
             push: true
-            # context: .
+            context: .
             file: ./Dockerfile
             platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
             sbom: true
