@@ -103,7 +103,7 @@ jobs:
             platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
             sbom: true
             build-args: |
-              JAR_FILE="./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
+              JAR_FILE=./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar
             tags: |
               ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
               ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}
