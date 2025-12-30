@@ -68,7 +68,7 @@ jobs:
           with:
             use: true
             platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
-            install: true
+            # install: true
 
         - name: "Maven: package"
           run: |
