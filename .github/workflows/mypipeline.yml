@@ -93,12 +93,14 @@ jobs:
             images: ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
 
         - name: "Docker build and push"
+          id: build
           uses: docker/build-push-action@v6     # https://github.com//docker/build-push-action  
           env:
             DOCKER_BUILD_SUMMARY: false
           with:
             push: true
             context: .
+            provenance: mode=max
             file: ./Dockerfile
             platforms: ${{env.DOCKER_BUILDX_PLATFORMS}}
             sbom: true
@@ -151,9 +153,9 @@ jobs:
           continue-on-error: true
           uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
           with:
-            subject-name: '${{env.DOCKER_REGISTRY}}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}'
-            subject-digest: '${{ env.DOCKER_DIGEST }}'    # sha256:hex_digest
-            github-token: ${{secrets.GITHUB_TOKEN}} 
+            subject-name: '${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.ARTIFACT_NAME }}'
+            subject-digest: ${{ steps.build.outputs.digest }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
             push-to-registry: true
             show-summary: true
 
@@ -179,7 +181,7 @@ jobs:
             echo "    - Artifact Name: ${{env.ARTIFACT_NAME}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Artifact Version: ${{env.ARTIFACT_VERSION}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
-            echo "    - GitHub Attest:  ${{ env.DOCKER_DIGEST }} " >> $GITHUB_STEP_SUMMARY
+            echo "    - GitHub Attest:  ${{ steps.build.outputs.digest }} " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
 
   dockerImageTest:
@@ -212,3 +214,67 @@ jobs:
           echo " Pulled docker" >> $GITHUB_STEP_SUMMARY
           echo " - ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:latest " >> $GITHUB_STEP_SUMMARY
           echo " - ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:${{needs.dockerPackage.outputs.image_todays_tag}} " >> $GITHUB_STEP_SUMMARY
+
+  dockerSBOMvalidate:
+    name: "Docker SBOM validate"
+    runs-on: ubuntu-latest
+    needs: dockerPackage
+    env:
+      BUILD_ID: "ga-${{github.run_number}}"
+    steps:
+      - name: "Docker: Set up Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Docker: authentication"
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: "Env vars and info"
+        id: set_var
+        run: |
+          echo "ARTIFACT_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+          echo "ARTIFACT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+          echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+          echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: "Docker SBOM validate - Latest image"
+        run: |
+          IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.BUILD_NAME }}:latest"
+          # Verify image has an SBOM attestation (from build with sbom: true)
+          SBOM_JSON=$(docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' 2>/dev/null || true)
+          if [ -z "$SBOM_JSON" ] || [ "$SBOM_JSON" = "null" ]; then
+            echo "::error::SBOM attestation not found for $IMAGE"
+            exit 1
+          fi
+          echo "SBOM attestation present for $IMAGE"
+          echo "$SBOM_JSON" | head -c 200
+          echo "..."
+        
+      - name: "Docker SBOM validate - ${{env.BUILD_ID}}"
+        run: |
+          IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.BUILD_NAME }}:${{env.BUILD_ID}}"
+          # Verify image has an SBOM attestation (from build with sbom: true)
+          SBOM_JSON=$(docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' 2>/dev/null || true)
+          if [ -z "$SBOM_JSON" ] || [ "$SBOM_JSON" = "null" ]; then
+            echo "::error::SBOM attestation not found for $IMAGE"
+            exit 1
+          fi
+          echo "SBOM attestation present for $IMAGE"
+          echo "$SBOM_JSON" | head -c 200
+          echo "..."
+
+      - name: "Docker SBOM validate - ${{env.TODAYS_DATE}}"
+        run: |
+          IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.BUILD_NAME }}:${{env.TODAYS_DATE}}"
+          # Verify image has an SBOM attestation (from build with sbom: true)
+          SBOM_JSON=$(docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' 2>/dev/null || true)
+          if [ -z "$SBOM_JSON" ] || [ "$SBOM_JSON" = "null" ]; then
+            echo "::error::SBOM attestation not found for $IMAGE"
+            exit 1
+          fi
+          echo "SBOM attestation present for $IMAGE"
+          echo "$SBOM_JSON" | head -c 200
+          echo "..."
