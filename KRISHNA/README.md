@@ -85,6 +85,11 @@ The green 🐾 button appears bottom-right. The header shows the active model na
 ![App home](./images/UI-home.png)
 ![App home](./images/UI-home-chat.png)
 
+
+#### Stop the app
+```bash
+./KRISHNA/exec.sh stop
+```
 ---
 
 ## Validate Ollama is working (before starting the app)

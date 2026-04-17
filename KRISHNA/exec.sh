@@ -18,8 +18,8 @@ if [[ -n $arg ]] ; then
         # java -jar target/spring-petclinic-*.jar
     elif [[ $arg == "STOP" || $arg == "CLEAN" ]] ; then
         echo "Stopping the application at ${DATE_TIME}"
-        ./mvnw spring-boot:stop & 
-        kill -9 $(lsof -t -i:8080) &
+        ./mvnw spring-boot:stop && kill -9 $(lsof -t -i:8080) && curl -X POST http://localhost:8080/actuator/shutdown 
+        echo "Application stopped successfully."
     else
         echo "Invalid argument: ${arg}. Please use BUILD or RUN."
     fi

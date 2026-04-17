@@ -34,7 +34,7 @@ jobs:
          working-directory: "${{env.DEFAULT_WORKSPACE}}"
     steps:
         - name: "Clone VCS"
-          uses: actions/checkout@v5 # ref: https://github.com/actions/checkout
+          uses: actions/checkout@v6    # ref: https://github.com/actions/checkout
         
         - name: "Setup JDK ${{matrix.java}}"
           uses: actions/setup-java@v5   # ref https://github.com/actions/setup-java (Node 24)
@@ -49,6 +49,7 @@ jobs:
           run: |
             echo "ARTIFACT_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
             echo "ARTIFACT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+            echo "SHORT_COMMIT_CODE=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
             echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
             echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
@@ -107,32 +108,18 @@ jobs:
             build-args: |
               JAR_FILE=./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar
             tags: |
+              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.SHORT_COMMIT_CODE}}
               ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
               ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}
               ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:jdk-${{matrix.java}}
               ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
               ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
+              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.SHORT_COMMIT_CODE}}
               ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
               ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:jdk-${{matrix.java}}
               ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}
               ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
               ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-            
-        # - name: "Docker: package and push"
-        #   env:
-        #     JAR_FILE: "./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
-        #     TAG10: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
-        #     TAG11: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}" 
-        #     TAG12: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:jdk-${{matrix.java}}"
-        #     TAG13: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}"
-        #     TAG14: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
-        #     TAG20: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
-        #     TAG21: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:jdk-${{matrix.java}}"
-        #     TAG22: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}"
-        #     TAG23: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}"
-        #     TAG24: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
-        #   run: |
-        #     docker image build -f ./Dockerfile --build-arg JAR_FILE=${{env.JAR_FILE}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push . --attest=type=sbom -t ${{env.TAG10}} -t ${{env.TAG11}} -t ${{env.TAG12}} -t ${{env.TAG13}} -t ${{env.TAG14}} -t ${{env.TAG20}} -t ${{env.TAG21}} -t ${{env.TAG22}} -t ${{env.TAG23}} -t ${{env.TAG24}}
             
         - name: "Docker: image list"
           run: |
@@ -178,6 +165,7 @@ jobs:
             echo " - Variables info" >> $GITHUB_STEP_SUMMARY
             echo "    - Build Name: ${{env.BUILD_NAME}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Build ID: ${{env.BUILD_ID}} " >> $GITHUB_STEP_SUMMARY
+            echo "    - Commit Code: ${{env.SHORT_COMMIT_CODE}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Artifact Name: ${{env.ARTIFACT_NAME}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Artifact Version: ${{env.ARTIFACT_VERSION}} " >> $GITHUB_STEP_SUMMARY
             echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
