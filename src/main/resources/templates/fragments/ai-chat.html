@@ -1,9 +1,13 @@
+
 <!DOCTYPE html>
 <html xmlns:th="https://www.thymeleaf.org" lang="en">
 <body>
 
 <!--/*
-  @author Krishna Manchikalapudi
+  AI CHAT PANEL FRAGMENT – Spring PetClinic (Ollama edition)
+  Calls the secure backend proxy: /api/ai/chat  →  AiChatController.java  →  Ollama
+  Include in layout.html with:
+    <div th:replace="~{fragments/ai-chat :: aiChat}"></div>
 */-->
 <div th:fragment="aiChat">
 
@@ -60,9 +64,27 @@
 
     <!-- Suggestion chips -->
     <div class="aichat-chips" id="aichat-chips">
-      <button class="aichat-chip" data-msg="How do I add a new pet owner?">Add owner</button>
+      <!-- nav chips → open a page directly -->
+      <button class="aichat-chip aichat-chip-nav" data-href="/owners/new"
+              title="Open Add Owner form">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/>
+          <line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>
+        Add Owner
+      </button>
+
+      <button class="aichat-chip aichat-chip-nav" data-href="/vets.html"
+              title="Browse Surgery Specialties">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        Surgery Specialties
+      </button>
+
+      <!-- chat chips → send a question to the AI -->
       <button class="aichat-chip" data-msg="How do I schedule a vet visit?">Book a visit</button>
-      <button class="aichat-chip" data-msg="How do I find a veterinarian?">Find a vet</button>
       <button class="aichat-chip" data-msg="What pet types are supported?">Pet types</button>
     </div>
 
@@ -162,6 +184,13 @@
       transition:all .15s;font-weight:500;
     }
     .aichat-chip:hover{background:var(--ac-green-lt);border-color:var(--ac-green);}
+    /* Nav chips — distinct teal-ish accent so users know they navigate */
+    .aichat-chip-nav{
+      background:#e8f4fd;border-color:#90cdf4;color:#2b6cb0;
+      display:inline-flex;align-items:center;gap:5px;
+    }
+    .aichat-chip-nav svg{width:12px;height:12px;flex-shrink:0;}
+    .aichat-chip-nav:hover{background:#bee3f8;border-color:#4299e1;color:#1a365d;}
     .aichat-input-area{padding:10px 12px 8px;background:var(--ac-bg);border-top:1px solid var(--ac-border);flex-shrink:0;}
     .aichat-input-wrap{
       display:flex;align-items:flex-end;gap:8px;background:var(--ac-surface);
@@ -219,7 +248,8 @@
       .then(data => {
         if (data.status === 'ok') {
           const name = data.model || 'Ollama';
-          modelLabel.textContent = 'Local AI · ' + name;
+          //modelLabel.textContent = 'Pet AI · ' + name;
+          modelLabel.textContent = 'Powered by https://DayOne.dev ';
         } else {
           setOffline('Ollama offline');
         }
@@ -265,8 +295,14 @@
     /* ── Suggestion chips ── */
     chips.querySelectorAll('.aichat-chip').forEach(b =>
       b.addEventListener('click', () => {
-        chips.style.display = 'none';
-        dispatch(b.dataset.msg);
+        if (b.dataset.href) {
+          /* Navigation chip — go straight to the page */
+          window.location.href = b.dataset.href;
+        } else {
+          /* Chat chip — send message to AI */
+          chips.style.display = 'none';
+          dispatch(b.dataset.msg);
+        }
       })
     );
 

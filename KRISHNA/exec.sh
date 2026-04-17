@@ -1,5 +1,5 @@
 #!/bin/bash
-arg=${1:-BUILD}
+arg=${1:-START}
 DATE_TIME=`date '+%Y-%m-%d %H:%M:%S'`
 
 # -n string - True if the string length is non-zero.
@@ -12,10 +12,17 @@ if [[ -n $arg ]] ; then
     if [[ $arg == "BUILD" ]] ; then
         echo "Building the application at ${DATE_TIME}"
         ./mvnw clean package -DskipTests
-    elif [[ $arg == "RUN" || $arg == "START" ]] ; then
+    elif [[ $arg == "RUN" ]] ; then
         echo "Running the application at ${DATE_TIME}"
          ./mvnw spring-boot:run & 
         # java -jar target/spring-petclinic-*.jar
+    elif [[ $arg == "START" || $arg == "RESTART" ]] ; then
+        echo "Restarting the application at ${DATE_TIME}"
+        ./mvnw spring-boot:stop 
+        echo "Application building at ${DATE_TIME}"
+        ./mvnw clean package -DskipTests 
+        echo "Application stopped successfully. Starting the application again."
+        ./mvnw spring-boot:run &
     elif [[ $arg == "STOP" || $arg == "CLEAN" ]] ; then
         echo "Stopping the application at ${DATE_TIME}"
         ./mvnw spring-boot:stop && kill -9 $(lsof -t -i:8080) && curl -X POST http://localhost:8080/actuator/shutdown 

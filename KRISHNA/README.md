@@ -75,7 +75,7 @@ spring-petclinic/
 
 #### Start the app
 ```bash
-./KRISHNA/exec.sh run
+./KRISHNA/exec.sh
 ```
 ![Build run](./images/boot-run.png)
 
@@ -83,8 +83,10 @@ Open [http://localhost:8080](http://localhost:8080).
 The green 🐾 button appears bottom-right. The header shows the active model name.
 
 ![App home](./images/UI-home.png)
-![App home](./images/UI-home-chat.png)
-
+![App chat](./images/UI-home-chat.png)
+![App chat - vet visit](./images/UI-chat-vet-visit.png)
+![App chat - vets](./images/UI-chat-vets.png)
+![App chat - pet owner](./images/UI-new-owner.png)
 
 #### Stop the app
 ```bash
