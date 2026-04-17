@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org" lang="en">
+<body>
+
+<!--/*
+  @author Krishna Manchikalapudi
+*/-->
+<div th:fragment="aiChat">
+
+  <!-- Floating toggle button -->
+  <button id="ai-chat-toggle" aria-label="Open AI Assistant" title="Ask PetClinic AI">
+    <svg id="aichat-open-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    <svg id="aichat-close-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2.5" style="display:none">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+
+  <!-- Chat panel -->
+  <div id="ai-chat-panel" role="dialog" aria-label="PetClinic AI Assistant" aria-live="polite">
+
+    <!-- Header -->
+    <div class="aichat-header">
+      <div class="aichat-header-info">
+        <div class="aichat-avatar">🐾</div>
+        <div>
+          <div class="aichat-title">PetClinic Assistant</div>
+          <div class="aichat-status" id="aichat-status-line">
+            <span class="aichat-dot-live"></span>
+            <span id="aichat-model-label">Connecting…</span>
+          </div>
+        </div>
+      </div>
+      <button class="aichat-close-btn" id="aichat-close-btn" aria-label="Close chat">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div class="aichat-messages" id="aichat-messages">
+      <div class="aichat-msg aichat-bot">
+        <div class="aichat-bubble">
+          👋 Hi! I'm your <strong>PetClinic AI Assistant</strong>.<br><br>
+          I can help you with:<br>
+          🐾 Managing pets &amp; owners<br>
+          📅 Scheduling vet visits<br>
+          🩺 Veterinarian information<br>
+          🔍 Finding owner records<br><br>
+          How can I help you today?
+        </div>
+        <div class="aichat-time">Just now</div>
+      </div>
+    </div>
+
+    <!-- Suggestion chips -->
+    <div class="aichat-chips" id="aichat-chips">
+      <button class="aichat-chip" data-msg="How do I add a new pet owner?">Add owner</button>
+      <button class="aichat-chip" data-msg="How do I schedule a vet visit?">Book a visit</button>
+      <button class="aichat-chip" data-msg="How do I find a veterinarian?">Find a vet</button>
+      <button class="aichat-chip" data-msg="What pet types are supported?">Pet types</button>
+    </div>
+
+    <!-- Input -->
+    <div class="aichat-input-area">
+      <div class="aichat-input-wrap">
+        <textarea id="aichat-input"
+          placeholder="Ask about pets, owners, visits…"
+          rows="1" aria-label="Type your message" maxlength="500"></textarea>
+        <button id="aichat-send" aria-label="Send message" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="aichat-footer">
+        Local AI via Ollama &middot; <a href="#" id="aichat-clear-link">Clear chat</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- STYLES -->
+  <style>
+    :root {
+      --ac-green: #4CAF50; --ac-green-dk: #388E3C; --ac-green-lt: #E8F5E9;
+      --ac-bg: #fff; --ac-surface: #f7f9fb; --ac-border: #dde3ea;
+      --ac-text: #1a202c; --ac-muted: #718096;
+      --ac-bot: #edf2f7; --ac-r: 16px;
+      --ac-shadow: 0 24px 64px rgba(0,0,0,.16),0 4px 20px rgba(0,0,0,.08);
+    }
+    #ai-chat-toggle {
+      position:fixed; bottom:28px; right:28px; width:60px; height:60px;
+      border-radius:50%; background:linear-gradient(135deg,var(--ac-green),var(--ac-green-dk));
+      border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+      box-shadow:0 4px 20px rgba(76,175,80,.45),0 2px 8px rgba(0,0,0,.15);
+      z-index:9998; transition:transform .2s,box-shadow .2s; color:#fff;
+    }
+    #ai-chat-toggle:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(76,175,80,.55),0 3px 12px rgba(0,0,0,.2);}
+    #ai-chat-toggle svg{width:26px;height:26px;}
+    #ai-chat-panel{
+      position:fixed;bottom:104px;right:28px;width:380px;max-height:590px;
+      background:var(--ac-bg);border-radius:var(--ac-r);box-shadow:var(--ac-shadow);
+      border:1px solid var(--ac-border);display:flex;flex-direction:column;
+      z-index:9997;overflow:hidden;
+      transform:scale(.88) translateY(16px);transform-origin:bottom right;
+      opacity:0;pointer-events:none;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .22s ease;
+    }
+    #ai-chat-panel.aichat-open{transform:scale(1) translateY(0);opacity:1;pointer-events:all;}
+    .aichat-header{
+      background:linear-gradient(135deg,var(--ac-green),var(--ac-green-dk));
+      padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+    }
+    .aichat-header-info{display:flex;align-items:center;gap:10px;}
+    .aichat-avatar{
+      width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:50%;
+      display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+    }
+    .aichat-title{color:#fff;font-weight:700;font-size:15px;line-height:1.2;}
+    .aichat-status{color:rgba(255,255,255,.85);font-size:12px;display:flex;align-items:center;gap:5px;margin-top:1px;}
+    .aichat-dot-live{width:7px;height:7px;background:#69f0ae;border-radius:50%;animation:aichat-pulse 2s infinite;}
+    .aichat-dot-offline{width:7px;height:7px;background:#fc8181;border-radius:50%;}
+    @keyframes aichat-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+    .aichat-close-btn{
+      background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;
+      width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;
+    }
+    .aichat-close-btn:hover{background:rgba(255,255,255,.28);}
+    .aichat-close-btn svg{width:15px;height:15px;}
+    .aichat-messages{
+      flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;
+      background:var(--ac-surface);min-height:0;scroll-behavior:smooth;
+    }
+    .aichat-messages::-webkit-scrollbar{width:4px;}
+    .aichat-messages::-webkit-scrollbar-thumb{background:var(--ac-border);border-radius:2px;}
+    .aichat-msg{display:flex;flex-direction:column;max-width:88%;}
+    .aichat-bot{align-self:flex-start;}
+    .aichat-user{align-self:flex-end;}
+    .aichat-bubble{padding:10px 14px;border-radius:12px;font-size:13.5px;line-height:1.55;word-wrap:break-word;}
+    .aichat-bot  .aichat-bubble{background:var(--ac-bot);color:var(--ac-text);border-bottom-left-radius:4px;border:1px solid var(--ac-border);}
+    .aichat-user .aichat-bubble{background:var(--ac-green);color:#fff;border-bottom-right-radius:4px;}
+    .aichat-time{font-size:11px;color:var(--ac-muted);margin-top:3px;padding:0 2px;}
+    .aichat-user .aichat-time{text-align:right;}
+    .aichat-typing .aichat-bubble{display:flex;align-items:center;gap:5px;padding:12px 16px;}
+    .aichat-tdot{width:7px;height:7px;background:var(--ac-muted);border-radius:50%;animation:aichat-bounce 1.2s infinite;}
+    .aichat-tdot:nth-child(2){animation-delay:.2s}.aichat-tdot:nth-child(3){animation-delay:.4s}
+    @keyframes aichat-bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+    .aichat-err{background:#fff5f5!important;border-color:#feb2b2!important;color:#c53030!important;}
+    .aichat-chips{
+      display:flex;gap:6px;padding:8px 12px;overflow-x:auto;flex-shrink:0;
+      background:var(--ac-surface);border-top:1px solid var(--ac-border);
+    }
+    .aichat-chips::-webkit-scrollbar{display:none}
+    .aichat-chip{
+      background:#fff;border:1px solid var(--ac-border);color:var(--ac-green-dk);
+      padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;white-space:nowrap;
+      transition:all .15s;font-weight:500;
+    }
+    .aichat-chip:hover{background:var(--ac-green-lt);border-color:var(--ac-green);}
+    .aichat-input-area{padding:10px 12px 8px;background:var(--ac-bg);border-top:1px solid var(--ac-border);flex-shrink:0;}
+    .aichat-input-wrap{
+      display:flex;align-items:flex-end;gap:8px;background:var(--ac-surface);
+      border:1.5px solid var(--ac-border);border-radius:12px;padding:6px 6px 6px 12px;transition:border-color .15s;
+    }
+    .aichat-input-wrap:focus-within{border-color:var(--ac-green);box-shadow:0 0 0 3px rgba(76,175,80,.1);}
+    #aichat-input{
+      flex:1;border:none;background:transparent;resize:none;font-size:14px;font-family:inherit;
+      color:var(--ac-text);max-height:100px;line-height:1.5;outline:none;
+    }
+    #aichat-input::placeholder{color:var(--ac-muted);}
+    #aichat-send{
+      width:34px;height:34px;border-radius:8px;background:var(--ac-green);border:none;color:#fff;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s;
+    }
+    #aichat-send:hover:not(:disabled){background:var(--ac-green-dk);transform:scale(1.05);}
+    #aichat-send:disabled{background:var(--ac-border);cursor:not-allowed;}
+    #aichat-send svg{width:16px;height:16px;}
+    .aichat-footer{text-align:center;font-size:11px;color:var(--ac-muted);margin-top:5px;}
+    .aichat-footer a{color:var(--ac-green-dk);text-decoration:none;}
+    .aichat-footer a:hover{text-decoration:underline;}
+    @media(max-width:480px){
+      #ai-chat-panel{bottom:0;right:0;left:0;width:100%;max-height:75vh;border-radius:var(--ac-r) var(--ac-r) 0 0;transform-origin:bottom center;}
+      #ai-chat-toggle{bottom:20px;right:20px;}
+    }
+  </style>
+
+  <!-- JAVASCRIPT -->
+  <script>
+  (function(){
+    'use strict';
+
+    /* ── DOM refs ── */
+    const toggleBtn  = document.getElementById('ai-chat-toggle');
+    const panel      = document.getElementById('ai-chat-panel');
+    const closeBtn   = document.getElementById('aichat-close-btn');
+    const msgs       = document.getElementById('aichat-messages');
+    const input      = document.getElementById('aichat-input');
+    const sendBtn    = document.getElementById('aichat-send');
+    const chips      = document.getElementById('aichat-chips');
+    const clearLink  = document.getElementById('aichat-clear-link');
+    const openIcon   = document.getElementById('aichat-open-icon');
+    const closeIconEl= document.getElementById('aichat-close-icon');
+    const modelLabel = document.getElementById('aichat-model-label');
+    const statusLine = document.getElementById('aichat-status-line');
+
+    /* ── State ── */
+    let history = [];
+    let isOpen  = false;
+    let busy    = false;
+
+    /* ── Health check – runs on page load ── */
+    fetch('/api/ai/health')
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          const name = data.model || 'Ollama';
+          modelLabel.textContent = 'Local AI · ' + name;
+        } else {
+          setOffline('Ollama offline');
+        }
+      })
+      .catch(() => setOffline('Ollama offline'));
+
+    function setOffline(msg) {
+      modelLabel.textContent = msg;
+      const dot = statusLine.querySelector('.aichat-dot-live');
+      if (dot) { dot.className = 'aichat-dot-offline'; }
+    }
+
+    /* ── Panel open / close ── */
+    function openPanel() {
+      isOpen = true;
+      panel.classList.add('aichat-open');
+      openIcon.style.display   = 'none';
+      closeIconEl.style.display = 'block';
+      input.focus();
+    }
+    function closePanel() {
+      isOpen = false;
+      panel.classList.remove('aichat-open');
+      openIcon.style.display   = 'block';
+      closeIconEl.style.display = 'none';
+    }
+
+    toggleBtn.addEventListener('click', () => isOpen ? closePanel() : openPanel());
+    closeBtn.addEventListener('click', closePanel);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen) closePanel(); });
+
+    /* ── Input handling ── */
+    input.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+      sendBtn.disabled = !this.value.trim() || busy;
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); }
+    });
+    sendBtn.addEventListener('click', go);
+
+    /* ── Suggestion chips ── */
+    chips.querySelectorAll('.aichat-chip').forEach(b =>
+      b.addEventListener('click', () => {
+        chips.style.display = 'none';
+        dispatch(b.dataset.msg);
+      })
+    );
+
+    /* ── Clear chat ── */
+    clearLink.addEventListener('click', e => {
+      e.preventDefault();
+      history = [];
+      msgs.innerHTML = '';
+      addBot('Chat cleared! How can I help you with PetClinic? \uD83D\uDC3E');
+      chips.style.display = 'flex';
+    });
+
+    /* ── Helpers ── */
+    function now() {
+      return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function md(s) {
+      return esc(s)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+    }
+
+    function addMsg(html, role, isErr) {
+      const wrap   = document.createElement('div');
+      wrap.className = 'aichat-msg aichat-' + (role === 'user' ? 'user' : 'bot');
+
+      const bubble = document.createElement('div');
+      bubble.className = 'aichat-bubble' + (isErr ? ' aichat-err' : '');
+      bubble.innerHTML = html;
+
+      const time = document.createElement('div');
+      time.className   = 'aichat-time';
+      time.textContent = now();
+
+      wrap.appendChild(bubble);
+      wrap.appendChild(time);
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+      return wrap;
+    }
+
+    function addBot(h, isErr) { return addMsg(h, 'bot', isErr); }
+    function addUser(s)       { return addMsg(esc(s), 'user'); }
+
+    function showTyping() {
+      const d = document.createElement('div');
+      d.id        = 'aichat-typing';
+      d.className = 'aichat-msg aichat-bot aichat-typing';
+      d.innerHTML = '<div class="aichat-bubble">'
+        + '<div class="aichat-tdot"></div>'
+        + '<div class="aichat-tdot"></div>'
+        + '<div class="aichat-tdot"></div>'
+        + '</div>';
+      msgs.appendChild(d);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function removeTyping() {
+      const t = document.getElementById('aichat-typing');
+      if (t) t.remove();
+    }
+
+    /* ── Send flow ── */
+    function go() {
+      const s = input.value.trim();
+      if (!s || busy) return;
+      chips.style.display = 'none';
+      dispatch(s);
+    }
+
+    async function dispatch(text) {
+      if (busy) return;
+
+      addUser(text);
+      history.push({ role: 'user', content: text });
+
+      input.value       = '';
+      input.style.height = 'auto';
+      sendBtn.disabled  = true;
+      busy              = true;
+      showTyping();
+
+      try {
+        const res = await fetch('/api/ai/chat', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ messages: history })
+        });
+
+        removeTyping();
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          /* Backend normalises errors to: { "error": "..." } */
+          throw new Error(data.error || 'Server error ' + res.status);
+        }
+
+        /* Backend normalises success to: { "reply": "..." } */
+        const reply = (data.reply || '').trim() || 'Sorry, I could not generate a response.';
+        addBot(md(reply));
+        history.push({ role: 'assistant', content: reply });
+
+        /* Trim to last 20 messages (10 pairs) */
+        if (history.length > 20) history = history.slice(history.length - 20);
+
+      } catch (err) {
+        removeTyping();
+        let m = '\u26A0\uFE0F ';
+        const msg = err.message || '';
+        if (msg.includes('not running') || msg.includes('Ollama')) {
+          m += 'Ollama is not running. Start it with: <code>ollama serve</code>';
+        } else if (msg.includes('503') || msg.includes('unavailable')) {
+          m += 'AI service unavailable. Is Ollama running?';
+        } else {
+          m += esc(msg) || 'Could not reach the AI service. Please try again.';
+        }
+        addBot(m, /* isErr */ true);
+
+        /* Update status dot to offline */
+        setOffline('Ollama offline');
+      }
+
+      busy             = false;
+      sendBtn.disabled = !input.value.trim();
+      input.focus();
+    }
+
+  })();
+  </script>
+</div>
+</body>
+</html>
