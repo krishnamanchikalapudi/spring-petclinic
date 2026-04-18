@@ -276,14 +276,20 @@ jobs:
             echo "### \`${IMAGE}\`" >> $GITHUB_STEP_SUMMARY
             SBOM_JSON=$(docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' 2>/dev/null || true)
             if [ -n "$SBOM_JSON" ] && [ "$SBOM_JSON" != "null" ]; then
-              echo "SBOM attestation present." >> $GITHUB_STEP_SUMMARY
+              SBOM_SIZE=$(echo -n "$SBOM_JSON" | wc -c)
+              echo "✅ SBOM attestation present (size: ${SBOM_SIZE} bytes)" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
+              # Show only first 1000 characters to avoid exceeding summary size limits
+              SBOM_PREVIEW=$(echo -n "$SBOM_JSON" | head -c 1000)
               echo '```json' >> $GITHUB_STEP_SUMMARY
-              printf '%s' "$SBOM_JSON" >> $GITHUB_STEP_SUMMARY
+              printf '%s' "$SBOM_PREVIEW" >> $GITHUB_STEP_SUMMARY
+              if [ ${#SBOM_JSON} -gt 1000 ]; then
+                echo "..." >> $GITHUB_STEP_SUMMARY
+              fi
               echo "" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
             else
-              echo "SBOM attestation not found or could not inspect." >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ SBOM attestation not found or could not inspect." >> $GITHUB_STEP_SUMMARY
             fi
             echo "" >> $GITHUB_STEP_SUMMARY
           done
