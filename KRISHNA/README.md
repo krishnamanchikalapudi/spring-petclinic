@@ -2,6 +2,8 @@
 
 Adds a **floating AI chat assistant** powered by a **locally-running Ollama instance** to every page. No cloud API keys required — everything runs on your machine.
 
+ - GitHub Action status: [![My Pipeline](https://github.com/krishnamanchikalapudi/spring-petclinic/actions/workflows/mypipeline.yml/badge.svg)](https://github.com/krishnamanchikalapudi/spring-petclinic/actions/workflows/mypipeline.yml)
+
 ## Architecture
 
 ```
@@ -37,7 +39,7 @@ ollama pull qwen3.5:0.8b     # ~1.3 GB, excellent instruction-following
 # or
 ollama pull phi3.5:latest        # tiny, runs on any hardware
 ```
-![Ollama models](./images/ollama-models.png) 
+![Ollama list](./images/ollama-list.png)
 
 ![Ollama run model](./images/ollama-run.png)
 
@@ -83,10 +85,13 @@ Open [http://localhost:8080](http://localhost:8080).
 The green 🐾 button appears bottom-right. The header shows the active model name.
 
 ![App home](./images/UI-home.png)
+![App home](./images/UI-home-list.png)
 ![App chat](./images/UI-home-chat.png)
 ![App chat - vet visit](./images/UI-chat-vet-visit.png)
 ![App chat - vets](./images/UI-chat-vets.png)
 ![App chat - pet owner](./images/UI-new-owner.png)
+![App chat - owners](./images/UI-chat-owners.png)
+![App chat - Pet Types](./images/UI-chat-pet-types)
 
 #### Stop the app
 ```bash
@@ -123,3 +128,5 @@ curl http://localhost:8080/api/ai/health
 | Chat replies with error | Check `ollama.model` matches a pulled model (`ollama list`) |
 | Very slow replies | Switch to a smaller model (`phi3`) or reduce context |
 | Port conflict | Change `ollama.base-url` to match your Ollama port |
+
+

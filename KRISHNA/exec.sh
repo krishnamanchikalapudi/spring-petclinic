@@ -17,6 +17,7 @@ if [[ -n $arg ]] ; then
          ./mvnw spring-boot:run & 
         # java -jar target/spring-petclinic-*.jar
     elif [[ $arg == "START" || $arg == "RESTART" ]] ; then
+        ./mvnw spring-javaformat:apply
         echo "Restarting the application at ${DATE_TIME}"
         ./mvnw spring-boot:stop 
         echo "Application building at ${DATE_TIME}"
@@ -24,9 +25,13 @@ if [[ -n $arg ]] ; then
         echo "Application stopped successfully. Starting the application again."
         ./mvnw spring-boot:run &
     elif [[ $arg == "STOP" || $arg == "CLEAN" ]] ; then
+        find . -name ".DS_Store" -type f -delete
+        find . -name "Thumbs.db" -type f -delete
         echo "Stopping the application at ${DATE_TIME}"
         ./mvnw spring-boot:stop && kill -9 $(lsof -t -i:8080) && curl -X POST http://localhost:8080/actuator/shutdown 
         echo "Application stopped successfully."
+    elif [[ $arg == "FORMAT" ]] ; then
+        ./mvnw spring-javaformat:apply
     else
         echo "Invalid argument: ${arg}. Please use BUILD or RUN."
     fi
