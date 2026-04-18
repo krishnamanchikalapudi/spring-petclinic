@@ -1,4 +1,4 @@
-package org.springframework.samples.petclinic.system;
+package org.springframework.samples.petclinic.ai.system;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,8 +62,12 @@ public class AiContextService {
 	private static final String[] COUNT_KEYWORDS = { "how many", "count", "total", "number of", "statistics", "stats",
 			"summary", "overview" };
 
-	// ── Private static record (promoted from local to avoid tooling issues) ──
+	// ── Private static records ──────────────────────────────────────────────
 	private record VisitRow(String date, String desc, String petName, String ownerName) {
+	}
+
+	/** Wraps context string with metadata indicating whether real data was found. */
+	public record ContextResult(String context, boolean dataFound) {
 	}
 
 	// ── Dependencies ──────────────────────────────────────────────────────────
@@ -81,20 +85,31 @@ public class AiContextService {
 	// ─────────────────────────────────────────────────────────────────────────
 
 	/**
-	 * Builds a context string tailored to the user's latest query. The returned string is
-	 * safe to embed directly into a system prompt.
+	 * Builds a context string with metadata indicating whether real data was found. If no
+	 * data could be retrieved from the database, returns a minimal context with
+	 * dataFound=false, allowing the caller to decide on a fallback strategy.
 	 * @param userQuery the latest user message text
-	 * @return a newline-delimited context block, or an empty string if an error occurs
-	 * while reading the database
+	 * @return ContextResult containing context string and dataFound flag
 	 */
-	public String buildContext(String userQuery) {
+	public ContextResult buildContextWithResult(String userQuery) {
 		try {
 			String q = userQuery == null ? "" : userQuery.toLowerCase(Locale.ROOT);
 			StringBuilder sb = new StringBuilder();
 			sb.append("\n\n--- LIVE CLINIC DATABASE (read-only snapshot) ---\n");
 
 			// 1. Always include summary stats
-			sb.append(buildStats());
+			long ownerCount = ownerRepository.findByLastNameStartingWith("", PageRequest.of(0, 1)).getTotalElements();
+			long vetCount = new ArrayList<>(vetRepository.findAll()).size();
+			long petCount = ownerRepository
+				.findByLastNameStartingWith("", PageRequest.of(0, (int) Math.max(ownerCount, 1)))
+				.getContent()
+				.stream()
+				.mapToLong(o -> o.getPets().size())
+				.sum();
+
+			boolean hasData = ownerCount > 0 || vetCount > 0 || petCount > 0;
+			sb.append(String.format("SUMMARY: %d owner(s), %d pet(s), %d veterinarian(s) on record.%n", ownerCount,
+					petCount, vetCount));
 
 			// 2. Intent-specific sections
 			boolean hasVetIntent = containsAny(q, VET_KEYWORDS);
@@ -116,9 +131,7 @@ public class AiContextService {
 			}
 
 			// 3. Name-based targeted search (highest specificity)
-			String detectedName = extractPossibleName(userQuery); // original case —
-																	// isUpperCase needs
-																	// it
+			String detectedName = extractPossibleName(userQuery);
 			if (detectedName != null) {
 				sb.append(buildNameSearchSection(detectedName));
 			}
@@ -131,36 +144,33 @@ public class AiContextService {
 			}
 
 			sb.append("--- END OF DATABASE SNAPSHOT ---\n");
-			return sb.toString();
+			return new ContextResult(sb.toString(), hasData);
 
 		}
 		catch (Exception ex) {
-			// Never let a DB error break the chat entirely
-			return "\n[Note: live database context unavailable — " + ex.getMessage() + "]\n";
+			// Return minimal context with dataFound=false to signal controller to use
+			// fallback
+			String errorMsg = String
+				.format("\n\n--- DATABASE CONTEXT UNAVAILABLE ---\nNote: Database context could not be retrieved (%s). "
+						+ "Proceeding with general knowledge.\n", ex.getMessage());
+			return new ContextResult(errorMsg, false);
 		}
+	}
+
+	/**
+	 * Builds a context string tailored to the user's latest query. The returned string is
+	 * safe to embed directly into a system prompt.
+	 * @param userQuery the latest user message text
+	 * @return a newline-delimited context block, or an empty string if an error occurs
+	 * while reading the database
+	 */
+	public String buildContext(String userQuery) {
+		return buildContextWithResult(userQuery).context();
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Context builders
 	// ─────────────────────────────────────────────────────────────────────────
-
-	/** Aggregate statistics line. */
-	private String buildStats() {
-		long ownerCount = ownerRepository.findByLastNameStartingWith("", PageRequest.of(0, 1)).getTotalElements();
-
-		// VetRepository.findAll() returns Collection<Vet> in the canonical petclinic
-		List<Vet> vets = new ArrayList<>(vetRepository.findAll());
-		long vetCount = vets.size();
-
-		long petCount = ownerRepository.findByLastNameStartingWith("", PageRequest.of(0, (int) Math.max(ownerCount, 1)))
-			.getContent()
-			.stream()
-			.mapToLong(o -> o.getPets().size())
-			.sum();
-
-		return String.format("SUMMARY: %d owner(s), %d pet(s), %d veterinarian(s) on record.%n", ownerCount, petCount,
-				vetCount);
-	}
 
 	/** Full vet roster with specialties. */
 	private String buildVetSection() {

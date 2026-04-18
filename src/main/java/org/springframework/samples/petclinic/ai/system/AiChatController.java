@@ -1,4 +1,4 @@
-package org.springframework.samples.petclinic.system;
+package org.springframework.samples.petclinic.ai.system;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +43,15 @@ public class AiChatController {
 			+ "- If data is absent from the snapshot, say so honestly.\n"
 			+ "- If the question is unrelated to the clinic, politely redirect.\n";
 
+	private static final String FALLBACK_SYSTEM_PROMPT = "You are a helpful AI assistant embedded in Spring PetClinic.\n\n"
+			+ "Note: The live clinic database is currently unavailable, so you cannot access real clinic data.\n\n"
+			+ "Your capabilities:\n" + "1. Guide users through the application (navigation, forms, features).\n"
+			+ "2. Provide general information about pet clinics and veterinary care.\n\n" + "Navigation:\n"
+			+ "  Home: /  |  Find owners: /owners/find  |  Add owner: /owners/new  |  Vets: /vets.html\n\n" + "Rules:\n"
+			+ "- Be concise and friendly.  Plain text; no markdown tables.\n"
+			+ "- Let the user know the database is currently unavailable if they ask about specific clinic data.\n"
+			+ "- Provide helpful general guidance about the application.\n";
+
 	@Value("${ollama.base-url:http://localhost:11434}")
 	private String ollamaBaseUrl;
 
@@ -74,8 +83,14 @@ public class AiChatController {
 			.map(Message::content)
 			.orElse("");
 
-		String dbContext = contextService.buildContext(latestUserMsg);
-		String systemPrompt = BASE_SYSTEM_PROMPT + dbContext;
+		// Build context and check if real data was found
+		AiContextService.ContextResult contextResult = contextService.buildContextWithResult(latestUserMsg);
+		String dbContext = contextResult.context();
+		boolean dataFound = contextResult.dataFound();
+
+		// Use fallback prompt if no data was found, otherwise use base prompt with
+		// context
+		String systemPrompt = dataFound ? BASE_SYSTEM_PROMPT + dbContext : FALLBACK_SYSTEM_PROMPT;
 
 		List<Map<String, String>> ollamaMessages = new ArrayList<>();
 		ollamaMessages.add(Map.of("role", "system", "content", systemPrompt));

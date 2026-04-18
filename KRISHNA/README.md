@@ -7,7 +7,7 @@ Adds a **floating AI chat assistant** powered by a **locally-running Ollama inst
 ## Architecture
 
 ```
-Browser  ──POST /api/ai/chat──►  AiChatController  ──►  Ollama (localhost:11434)
+Browser ── POST /api/ai/chat ──►  AiChatController  ──►  AiContextService ──►  Ollama (localhost:11434)
          ◄── { "reply": "…" } ────────────────────────────────────────────────
 ```
 
@@ -64,8 +64,9 @@ spring-petclinic/
     ├── main/resources/templates/fragments/
     │   └── layout.html
     │   └── ai-chat.html             
-    └── main/java/org/springframework/samples/petclinic/system/
+    └── main/java/org/springframework/samples/petclinic/ai/system/
         └── AiChatController.java 
+        └── AiContextService.java 
 ```
 
 ### Run PetClinic
@@ -91,7 +92,7 @@ The green 🐾 button appears bottom-right. The header shows the active model na
 ![App chat - vets](./images/UI-chat-vets.png)
 ![App chat - pet owner](./images/UI-new-owner.png)
 ![App chat - owners](./images/UI-chat-owners.png)
-![App chat - Pet Types](./images/UI-chat-pet-types)
+![App chat - NLP question](./images/UI-nlp-question.png)
 
 #### Stop the app
 ```bash
@@ -129,4 +130,4 @@ curl http://localhost:8080/api/ai/health
 | Very slow replies | Switch to a smaller model (`phi3`) or reduce context |
 | Port conflict | Change `ollama.base-url` to match your Ollama port |
 
-
+![Ollama offline](./images/ollama-offline.png)
