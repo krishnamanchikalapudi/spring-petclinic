@@ -11,7 +11,7 @@ spec:
   capacity:
     storage: 50Gi
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   hostPath:
     path: /data/ollama
     type: DirectoryOrCreate
@@ -24,7 +24,7 @@ metadata:
   namespace: ollama-ns
 spec:
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: 50Gi
@@ -51,12 +51,12 @@ spec:
       - name: ollama
         image: ollama/ollama:latest
         ports:
-      - containerPort: 11434
+        - containerPort: 11434
         volumeMounts:
-      - name: ollama-storage
+        - name: ollama-storage
           mountPath: /root/.ollama
         env:
-      - name: OLLAMA_KEEP_ALIVE
+        - name: OLLAMA_KEEP_ALIVE
           value: "24h"
         resources:
           limits:
@@ -80,7 +80,7 @@ spec:
   selector:
     app: ollama
   ports:
-    - port: 11434
+  - port: 11434
     targetPort: 11434
 ---
 apiVersion: batch/v1
@@ -121,7 +121,7 @@ spec:
         - name: ollama-storage
           mountPath: /root/.ollama
       volumes:
-        - name: ollama-storage
+      - name: ollama-storage
         persistentVolumeClaim:
           claimName: ollama-pvc
 ---

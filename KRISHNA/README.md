@@ -51,7 +51,7 @@ ollama pull phi3.5:latest        # tiny, runs on any hardware
          - calls Ollama `/api/chat`; exposes `/api/ai/health`; returns `{"reply":"…"}`
      - src/main/resources/application-ollama.properties
          - `ollama.base-url=http://localhost:11434`
-         - `ollama.model=llama3.2:1b`
+         - `ollama.model=qwen3.5:0.8b`
  - Updated files:
  - src/main/resources/templates/fragments/layout.html
      - `<div th:replace="~{fragments/ai-chat :: aiChat}">`
@@ -109,7 +109,7 @@ curl http://localhost:11434/api/tags
 
 ####  Quick chat test
 ```bash
-curl http://localhost:11434/api/chat -d '{"model":"llama3.2:1b","messages":[{"role":"user","content":"Hello"}],"stream":false}'
+curl http://localhost:11434/api/chat -d '{"model":"qwen3.5:0.8b","messages":[{"role":"user","content":"Hello"}],"stream":false}'
 ```
 ![Ollama chat](./images/ollama-api-chat.png)
 
@@ -117,7 +117,7 @@ Once the app is running you can also hit the health endpoint:
 
 ```bash
 curl http://localhost:8080/api/ai/health
-# → {"status":"ok","baseUrl":"http://localhost:11434","model":"llama3.2:1b","models":["llama3.2:1b"]}
+# → {"status":"ok","baseUrl":"http://localhost:11434","model":"qwen3.5:0.8b","models":["qwen3.5:0.8b"]}
 ```
 
 ---
