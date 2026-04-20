@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ollama-ns
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ollama-pv
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: /data/ollama
+    type: DirectoryOrCreate
+  storageClassName: ollama-local
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-pvc
+  namespace: ollama-ns
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: ollama-local
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: ollama-ns
+  labels:
+    app: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest
+        ports:
+      - containerPort: 11434
+        volumeMounts:
+      - name: ollama-storage
+          mountPath: /root/.ollama
+        env:
+      - name: OLLAMA_KEEP_ALIVE
+          value: "24h"
+        resources:
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: ollama-storage
+        persistentVolumeClaim:
+          claimName: ollama-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-service
+  namespace: ollama-ns
+spec:
+  type: ClusterIP
+  selector:
+    app: ollama
+  ports:
+    - port: 11434
+    targetPort: 11434
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-qwen3.5
+  namespace: ollama-ns
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: pull-model
+        image: ollama/ollama:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -e
+          MODEL="qwen3.5:0.8b"
+          echo "Waiting for Ollama service..."
+          until curl -s http://ollama-service.ollama-ns.svc.cluster.local:11434 > /dev/null; do
+            sleep 2
+          done
+          
+          echo "Checking if $MODEL already exists in PV..."
+          if ollama list | grep -q "$MODEL"; then
+            echo "Model $MODEL already present in /root/.ollama. Skipping pull."
+          else
+            echo "Model not found. Pulling $MODEL..."
+            ollama pull $MODEL
+            echo "Pull complete. Model saved to PV."
+          fi
+        env:
+        - name: OLLAMA_HOST
+          value: "http://ollama-service.ollama-ns.svc.cluster.local:11434"
+        volumeMounts:
+        - name: ollama-storage
+          mountPath: /root/.ollama
+      volumes:
+        - name: ollama-storage
+        persistentVolumeClaim:
+          claimName: ollama-pvc
+---
