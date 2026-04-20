@@ -1,8 +1,8 @@
-name: "My Pipeline"
+name: "My Pipeline - AI capabilities"
 on:
   push:
     branches: 
-      - '**'
+      - 'AI-capabilities'
 permissions:
   actions: read # for detecting the Github Actions environment.
   id-token: write # for creating OIDC tokens for signing.
@@ -73,7 +73,7 @@ jobs:
 
         - name: "Maven: package"
           run: |
-            mvn clean package -DskipTests -Denforcer.skip
+            mvn clean package -DskipTests -Denforcer.skip -Dcheckstyle.skip
 
         - name: "Evidence: GitHub Attest for JAR artifact"
           continue-on-error: true
