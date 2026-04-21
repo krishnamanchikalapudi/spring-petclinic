@@ -158,6 +158,23 @@
       <artifactId>testcontainers-mysql</artifactId>
       <scope>test</scope>
     </dependency>
+    <!--
+      RAG
+    -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-webflux</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+
+
   </dependencies>
 
   <build>
