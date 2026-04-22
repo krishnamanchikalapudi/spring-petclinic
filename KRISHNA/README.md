@@ -127,32 +127,5 @@ curl http://localhost:8080/api/ai/health
 
 [![Video demo](https://img.youtube.com/vi/?/0.jpg)](https://youtu.be/?) 
 ---
----
-
-## RAG: Embeddings + H2 Vector Table + Semantic Search + Citations
-
-#### Ollama pull an embedding model
- - https://ollama.com/models
-```bash
-ollama pull qwen3-embedding:0.6b     # ~639 MB, comprehensive range of text embeddings 
-```
-
-### Architecture
-
-
-### Feature code
- - New files:
-     - src/main/java/org/springframework/samples/petclinic/ai/
-     - src/main/resources/application-ollama.properties
- - Updated files:
-    - src/main/resources/templates/fragments/layout.html
-```
-spring-petclinic/
-└── pom.xml
-└── src/
-    ├── main/java/org/springframework/samples/petclinic/ai/system/
-```
-
-[![Video demo](https://img.youtube.com/vi/?/0.jpg)](https://youtu.be/?)
----
----
+--
+-

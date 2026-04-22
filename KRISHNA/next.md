@@ -1,3 +1,30 @@
+## RAG: Embeddings + H2 Vector Table + Semantic Search + Citations
+
+#### Ollama pull an embedding model
+ - https://ollama.com/models
+```bash
+ollama pull qwen3-embedding:0.6b     # ~639 MB, comprehensive range of text embeddings 
+```
+
+### Architecture
+
+
+### Feature code
+ - New files:
+     - src/main/java/org/springframework/samples/petclinic/ai/
+     - src/main/resources/application-ollama.properties
+ - Updated files:
+    - src/main/resources/templates/fragments/layout.html
+```
+spring-petclinic/
+└── pom.xml
+└── src/
+    ├── main/java/org/springframework/samples/petclinic/ai/system/
+```
+
+[![Video demo](https://img.youtube.com/vi/?/0.jpg)](https://youtu.be/?)
+---
+---
 
 ## MCP Server: Expose PetClinic Tools 
 Decouple LLM from DB by exposing listOwners, getOwner, addVisit as safe JSON-RPC tools.
@@ -133,5 +160,8 @@ Prove 99.95% SLO, trace every AI call end-to-end, and ship with 0 CRITICAL vulns
 ---
 
 <!--
-Read spring-petclinic https://github.com/krishnamanchikalapudi/spring-petclinic and share  step-by-step code enhancement java, html, service, h2database enhancement to build RAG using Embeddings, H2 Vector Table, Semantic Search, Citations on using locally deployed Ollama model qwen3.5 for AI enablement. The topic outcome for director swe, enterprise & principal architect, devops & SRE with security mindset metrics along with Strategy, Enterprise, & Governance. Share story narration for video content must be between 10 & 15 minutes.
+copilot: update spring-petclinic code (java code at src/main/java/org/springframework/samples/petclinic/ai/) for RAG: Embeddings + H2 Vector Table + Semantic Search + Citations
+
+
+Read spring-petclinic and share step-by-step code enhancement java, html, service, h2database enhancement to build RAG using Embeddings, H2 Vector Table, Semantic Search, Citations on using locally deployed Ollama model qwen3.5 for AI enablement. The topic outcome for director swe, enterprise & principal architect, devops & SRE with security mindset metrics along with Strategy, Enterprise, & Governance. Share story narration for video content must be between 10 & 15 minutes.
 -->

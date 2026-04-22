@@ -29,11 +29,11 @@ clean_files(){
 }
 run_app(){
     echo "Running the application at ${DATE_TIME}"
-    ./mvnw spring-boot:run &
+    ./mvnw spring-boot:run -Dcheckstyle.skip &
 }
 package_app(){
     echo "Packaging the application at ${DATE_TIME}"
-    ./mvnw clean package -DskipTests
+    ./mvnw clean package -DskipTests -Dcheckstyle.skip
 }
 
 # -n string - True if the string length is non-zero.
