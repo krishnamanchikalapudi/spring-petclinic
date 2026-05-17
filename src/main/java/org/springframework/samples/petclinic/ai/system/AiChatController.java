@@ -1,8 +1,10 @@
 package org.springframework.samples.petclinic.ai.system;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -10,10 +12,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.samples.petclinic.ai.memory.ChatMessage;
+import org.springframework.samples.petclinic.ai.memory.ChatSession;
+import org.springframework.samples.petclinic.ai.memory.ChatSessionRepository;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -60,16 +67,37 @@ public class AiChatController {
 
 	private final AiContextService contextService;
 
+	private final ChatSessionRepository sessionRepository;
+
 	private final RestTemplate restTemplate = new RestTemplate();
 
-	public AiChatController(AiContextService contextService) {
+	public AiChatController(AiContextService contextService, ChatSessionRepository sessionRepository) {
 		this.contextService = contextService;
+		this.sessionRepository = sessionRepository;
 	}
 
 	@PostMapping("/chat")
 	public ResponseEntity<?> chat(@RequestBody ChatRequest request) {
 		if (request.messages() == null || request.messages().isEmpty()) {
 			return ResponseEntity.badRequest().body(Map.of("error", "messages array is required"));
+		}
+
+		// Load or create session
+		ChatSession session = null;
+		if (request.sessionToken() != null && !request.sessionToken().isEmpty()) {
+			session = sessionRepository.findBySessionToken(request.sessionToken()).orElse(null);
+		}
+		if (session == null) {
+			// Create new session with auto-generated title based on first user message
+			String firstUserMsg = request.messages()
+				.stream()
+				.filter(m -> "user".equals(m.role()))
+				.map(Message::content)
+				.findFirst()
+				.orElse("New Chat");
+			String title = firstUserMsg.substring(0, Math.min(100, firstUserMsg.length()));
+			session = new ChatSession(title);
+			session = sessionRepository.save(session);
 		}
 
 		List<Message> history = new ArrayList<>(request.messages());
@@ -119,7 +147,23 @@ public class AiChatController {
 				return serverError("Unexpected Ollama response format");
 
 			String reply = messageObj.getOrDefault("content", "").strip();
-			return ResponseEntity.ok(Map.of("reply", reply));
+
+			// Save messages to database
+			Message lastClientMsg = history.stream()
+				.filter(m -> "user".equals(m.role()))
+				.reduce((a, b) -> b)
+				.orElse(null);
+
+			if (lastClientMsg != null && session.getMessages()
+				.stream()
+				.noneMatch(m -> "user".equals(m.getRole()) && m.getContent().equals(lastClientMsg.content()))) {
+				session.addMessage(new ChatMessage(session, "user", lastClientMsg.content()));
+				session.addMessage(new ChatMessage(session, "assistant", reply));
+				session.setUpdatedAt(LocalDateTime.now());
+				sessionRepository.save(session);
+			}
+
+			return ResponseEntity.ok(Map.of("reply", reply, "sessionToken", session.getSessionToken()));
 
 		}
 		catch (ResourceAccessException ex) {
@@ -167,12 +211,94 @@ public class AiChatController {
 		}
 	}
 
+	/**
+	 * List all recent chat sessions (limited to 20 most recent)
+	 */
+	@GetMapping("/sessions")
+	public ResponseEntity<?> listSessions(@RequestParam(defaultValue = "20") int limit) {
+		try {
+			List<ChatSession> sessions = sessionRepository.findRecentSessions(Math.min(limit, 50));
+			List<Map<String, Object>> result = sessions.stream()
+				.map(s -> Map.of("id", (Object) s.getId(), "sessionToken", s.getSessionToken(), "title", s.getTitle(),
+						"messageCount", s.getMessageCount(), "summary", s.getSummary(), "createdAt",
+						s.getCreatedAt().toString(), "updatedAt", s.getUpdatedAt().toString()))
+				.toList();
+			return ResponseEntity.ok(result);
+		}
+		catch (Exception ex) {
+			return serverError(ex.getMessage());
+		}
+	}
+
+	/**
+	 * Get a specific chat session with all messages
+	 */
+	@GetMapping("/sessions/{sessionToken}")
+	public ResponseEntity<?> getSession(@PathVariable String sessionToken) {
+		try {
+			Optional<ChatSession> session = sessionRepository.findBySessionToken(sessionToken);
+			if (session.isEmpty()) {
+				return ResponseEntity.notFound().build();
+			}
+
+			ChatSession s = session.get();
+			List<Map<String, String>> messages = s.getMessages()
+				.stream()
+				.map(m -> Map.of("role", m.getRole(), "content", m.getContent()))
+				.toList();
+
+			return ResponseEntity
+				.ok(Map.of("id", s.getId(), "sessionToken", s.getSessionToken(), "title", s.getTitle(), "messages",
+						messages, "createdAt", s.getCreatedAt().toString(), "updatedAt", s.getUpdatedAt().toString()));
+		}
+		catch (Exception ex) {
+			return serverError(ex.getMessage());
+		}
+	}
+
+	/**
+	 * Create a new chat session
+	 */
+	@PostMapping("/sessions")
+	public ResponseEntity<?> createSession(@RequestBody Map<String, String> body) {
+		try {
+			String title = body.getOrDefault("title", "New Chat");
+			ChatSession session = new ChatSession(title);
+			session = sessionRepository.save(session);
+
+			return ResponseEntity.ok(Map.of("id", session.getId(), "sessionToken", session.getSessionToken(), "title",
+					session.getTitle()));
+		}
+		catch (Exception ex) {
+			return serverError(ex.getMessage());
+		}
+	}
+
+	/**
+	 * Delete a chat session
+	 */
+	@PostMapping("/sessions/{sessionToken}/delete")
+	public ResponseEntity<?> deleteSession(@PathVariable String sessionToken) {
+		try {
+			Optional<ChatSession> session = sessionRepository.findBySessionToken(sessionToken);
+			if (session.isEmpty()) {
+				return ResponseEntity.notFound().build();
+			}
+
+			sessionRepository.delete(session.get());
+			return ResponseEntity.ok(Map.of("message", "Session deleted"));
+		}
+		catch (Exception ex) {
+			return serverError(ex.getMessage());
+		}
+	}
+
 	private ResponseEntity<Map<String, Object>> serverError(String message) {
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 			.body(Map.of("error", "AI service error: " + message));
 	}
 
-	public record ChatRequest(List<Message> messages) {
+	public record ChatRequest(List<Message> messages, String sessionToken) {
 	}
 
 	public record Message(String role, String content) {

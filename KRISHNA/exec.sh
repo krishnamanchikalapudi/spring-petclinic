@@ -28,12 +28,12 @@ clean_files(){
     find . -name "Thumbs.db" -type f -delete
 }
 run_app(){
-    echo "Running the application at ${DATE_TIME}"
-    ./mvnw spring-boot:run -Dcheckstyle.skip &
+    echo "Running the application at ${DATE_TIME}" # -Dcheckstyle.skip
+    ./mvnw spring-boot:run &
 }
 package_app(){
-    echo "Packaging the application at ${DATE_TIME}"
-    ./mvnw clean package -DskipTests -Dcheckstyle.skip
+    echo "Packaging the application at ${DATE_TIME}" # -Dcheckstyle.skip
+    ./mvnw clean package -DskipTests 
 }
 
 # -n string - True if the string length is non-zero.

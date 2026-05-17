@@ -82,7 +82,6 @@ public class AiContextService {
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Public API
-	// ─────────────────────────────────────────────────────────────────────────
 
 	/**
 	 * Builds a context string with metadata indicating whether real data was found. If no

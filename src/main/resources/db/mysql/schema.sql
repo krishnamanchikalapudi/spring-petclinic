@@ -53,3 +53,25 @@ CREATE TABLE IF NOT EXISTS visits (
   description VARCHAR(255),
   FOREIGN KEY (pet_id) REFERENCES pets(id)
 ) engine=InnoDB;
+
+-- AI Chat Tables
+CREATE TABLE IF NOT EXISTS ai_chat_sessions (
+  id INT(4) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  session_token VARCHAR(36) NOT NULL UNIQUE,
+  title VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX(session_token),
+  INDEX(updated_at)
+) engine=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ai_chat_messages (
+  id INT(4) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  session_id INT(4) UNSIGNED NOT NULL,
+  role VARCHAR(20) NOT NULL,
+  content LONGTEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (session_id) REFERENCES ai_chat_sessions(id) ON DELETE CASCADE,
+  INDEX(session_id),
+  INDEX(created_at)
+) engine=InnoDB;

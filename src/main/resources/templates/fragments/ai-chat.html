@@ -272,20 +272,63 @@
     let history = [];
     let isOpen  = false;
     let busy    = false;
+    let currentSessionToken = null;
 
-    /* ── Health check – runs on page load ── */
+    // Load session from localStorage if available
+    function loadSessionFromStorage() {
+      const stored = localStorage.getItem('aichat_sessionToken');
+      const storedHistory = localStorage.getItem('aichat_history');
+      if (stored) {
+        currentSessionToken = stored;
+        if (storedHistory) {
+          try {
+            history = JSON.parse(storedHistory);
+            renderHistoryFromStorage();
+          } catch (e) {
+            console.error('Failed to parse stored history:', e);
+            history = [];
+          }
+        }
+      }
+    }
+
+    // Save session and history to localStorage
+    function saveSessionToStorage() {
+      if (currentSessionToken) {
+        localStorage.setItem('aichat_sessionToken', currentSessionToken);
+        localStorage.setItem('aichat_history', JSON.stringify(history));
+      }
+    }
+
+    // Render messages from stored history on page load
+    function renderHistoryFromStorage() {
+      if (history.length === 0) return;
+      msgs.innerHTML = '';
+      chips.style.display = 'none';
+      history.forEach(msg => {
+        if (msg.role === 'user') {
+          addUser(msg.content);
+        } else if (msg.role === 'assistant') {
+          addBot(md(msg.content));
+        }
+      });
+    }
+
+    // Health check – runs on page load
     fetch('/api/ai/health')
       .then(r => r.json())
       .then(data => {
         if (data.status === 'ok') {
           const name = data.model || 'Ollama';
-          // modelLabel.textContent = 'Local AI · ' + name;
           modelLabel.textContent = 'Powered by https://DayOne.dev'
         } else {
           setOffline('Ollama offline');
         }
       })
       .catch(() => setOffline('Ollama offline'));
+
+    // Load session on initialization
+    loadSessionFromStorage();
 
     function setOffline(msg) {
       modelLabel.textContent = msg;
@@ -341,8 +384,11 @@
     clearLink.addEventListener('click', e => {
       e.preventDefault();
       history = [];
+      currentSessionToken = null;
+      localStorage.removeItem('aichat_sessionToken');
+      localStorage.removeItem('aichat_history');
       msgs.innerHTML = '';
-      addBot('Chat cleared! How can I help you with PetClinic? \uD83D\uDC3E');
+      addBot('Chat cleared! How can I help you with PetClinic? 🐾');
       chips.style.display = 'flex';
     });
 
@@ -430,7 +476,10 @@
         const res = await fetch('/api/ai/chat', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ messages: history })
+          body:    JSON.stringify({ 
+            messages: history,
+            sessionToken: currentSessionToken
+          })
         });
 
         removeTyping();
@@ -447,8 +496,17 @@
         addBot(md(reply));
         history.push({ role: 'assistant', content: reply });
 
+        /* Update session token from response */
+        if (data.sessionToken) {
+          currentSessionToken = data.sessionToken;
+          saveSessionToStorage();
+        }
+
         /* Trim to last 20 messages (10 pairs) */
         if (history.length > 20) history = history.slice(history.length - 20);
+
+        /* Save to localStorage */
+        saveSessionToStorage();
 
       } catch (err) {
         removeTyping();
