@@ -4,5 +4,14 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"java.compile.nullAnalysis.mode": "disabled",
+		"chat.tools.terminal.autoApprove": {
+			"/^bash -n BOOTCAMP/aicamp\\.sh && echo 'syntax ok'$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"command": true
+		}
+	}
 }

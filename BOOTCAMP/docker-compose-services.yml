@@ -1,0 +1,203 @@
+# PetClinic AI Bootcamp — Full Local Stack
+# Usage: make infra-up
+
+services:
+  # ── Ollama ────────────────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest      # https://hub.docker.com/r/ollama/ollama/tags?name=latest
+    container_name: petclinic-ollama
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+      OLLAMA_NUM_PARALLEL: 2
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:11434/api/tags"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # Model warm-up: pulls models on first start
+  ollama-init:
+    image: curlimages/curl:latest
+    container_name: petclinic-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Pulling qwen3.5:0.8b...' &&
+        curl -sf -X POST http://ollama:11434/api/pull
+          -H 'Content-Type: application/json'
+          -d '{\"name\":\"qwen3.5:0.8b\",\"stream\":false}'
+          --max-time 600 &&
+        echo 'Pulling nomic-embed-text...' &&
+        curl -sf -X POST http://ollama:11434/api/pull
+          -H 'Content-Type: application/json'
+          -d '{\"name\":\"nomic-embed-text\",\"stream\":false}'
+          --max-time 300 &&
+        echo 'Models ready.'
+      "
+    restart: on-failure
+
+  # ── PostgreSQL + pgvector ─────────────────────────────────────────────────
+  postgresql:
+    image: pgvector/pgvector:pg18       # https://hub.docker.com/r/pgvector/pgvector/tags
+    container_name: petclinic-postgresql
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: petclinic
+      POSTGRES_USER: petclinic
+      POSTGRES_PASSWORD: petclinic
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./src/main/resources/db/postgres:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petclinic -d petclinic"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Neo4j ─────────────────────────────────────────────────────────────────
+  # docker run --rm -d --name neo4j -p7474:7474 -p7687:7687 --env NEO4J_AUTH=neo4j/mySecretPwd2026 -v "$HOME/neo4j/data":/data -v "$HOME/neo4j/logs":/logs -v "$HOME/neo4j/import":/import -v "$HOME/neo4j/plugins":/plugins neo4j:latest
+  neo4j:
+    image: neo4j:latest       # https://hub.docker.com/_/neo4j/tags?name=latest
+    container_name: petclinic-neo4j
+    ports:
+      - "7474:7474"   # Browser
+      - "7687:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/petclinic
+      NEO4J_PLUGINS: '["apoc","graph-data-science"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*,gds.*
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7474"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:latest  # https://hub.docker.com/_/redis/tags?name=latest
+    container_name: petclinic-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass petclinic --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "petclinic", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Kafka ─────────────────────────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest # https://hub.docker.com/r/confluentinc/cp-zookeeper/tags?name=latest
+    container_name: petclinic-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+
+  kafka:
+    image: confluentinc/cp-kafka:latest # https://hub.docker.com/r/confluentinc/cp-kafka/tags?name=latest
+    container_name: petclinic-kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+
+
+# ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest    # https://hub.docker.com/r/prom/prometheus/tags?name=latest
+    container_name: petclinic-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  # ── Grafana ───────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest       # https://hub.docker.com/r/grafana/grafana/tags?name=latest
+    container_name: petclinic-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: petclinic
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ── Langfuse (AI Tracing) ─────────────────────────────────────────────────
+  langfuse:
+    image: langfuse/langfuse:latest  # https://hub.docker.com/r/langfuse/langfuse/tags?name=latest
+    container_name: petclinic-langfuse
+    ports:
+      - "3100:3000"
+    environment:
+      DATABASE_URL: postgresql://petclinic:petclinic@postgresql:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3100
+      NEXTAUTH_SECRET: bootcamp-nextauth-secret
+      SALT: bootcamp-salt
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ollama-models:
+  postgres-data:
+  neo4j-data:
+  neo4j-logs:
+  redis-data:
+  kafka-data:
+  zookeeper-data:
+  prometheus-data:
+  grafana-data:
+
+
+
+
+

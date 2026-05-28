@@ -1,8 +1,8 @@
-name: "My Pipeline"
+name: "BOOTCAMP Pipeline"
 on:
   push:
     branches: 
-      - '**'
+      - 'bootcamp'
 permissions:
   actions: read # for detecting the Github Actions environment.
   id-token: write # for creating OIDC tokens for signing.
@@ -34,7 +34,7 @@ jobs:
          working-directory: "${{env.DEFAULT_WORKSPACE}}"
     steps:
         - name: "Clone VCS"
-          uses: actions/checkout@v5 # ref: https://github.com/actions/checkout
+          uses: actions/checkout@v5     # ref: https://github.com/actions/checkout
         
         - name: "Setup JDK ${{matrix.java}}"
           uses: actions/setup-java@v5   # ref https://github.com/actions/setup-java (Node 24)
@@ -117,37 +117,10 @@ jobs:
               ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}
               ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
               ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-            
-        # - name: "Docker: package and push"
-        #   env:
-        #     JAR_FILE: "./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
-        #     TAG10: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
-        #     TAG11: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}" 
-        #     TAG12: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:jdk-${{matrix.java}}"
-        #     TAG13: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}"
-        #     TAG14: "${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
-        #     TAG20: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}"
-        #     TAG21: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:jdk-${{matrix.java}}"
-        #     TAG22: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}"
-        #     TAG23: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}"
-        #     TAG24: "${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest"
-        #   run: |
-        #     docker image build -f ./Dockerfile --build-arg JAR_FILE=${{env.JAR_FILE}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push . --attest=type=sbom -t ${{env.TAG10}} -t ${{env.TAG11}} -t ${{env.TAG12}} -t ${{env.TAG13}} -t ${{env.TAG14}} -t ${{env.TAG20}} -t ${{env.TAG21}} -t ${{env.TAG22}} -t ${{env.TAG23}} -t ${{env.TAG24}}
-            
+     
         - name: "Docker: image list"
           run: |
             docker image ls
-
-        # - name: "Docker: Extract metadata"
-        #   run: |
-        #     cat ${{env.DOCKER_METADATA_JSON}}
-
-        #     # Extract the container image digest as a raw string (no quotes) in the form sha256:<hex>
-        #     imageDigest=$(jq -r '.["containerimage.digest"]' "${{env.DOCKER_METADATA_JSON}}")
-        #     # Remove any leading/trailing whitespace just in case
-        #     imageDigest=$(echo "${imageDigest}" | tr -d '\r' | xargs)
-        #     echo "DOCKER_DIGEST: ${imageDigest}"
-        #     echo "DOCKER_DIGEST=${imageDigest}" >> $GITHUB_ENV
 
         - name: "Evidence: GitHub Attest for docker image"
           continue-on-error: true
@@ -166,13 +139,7 @@ jobs:
             echo " " >> $GITHUB_STEP_SUMMARY
             echo " Build on: ${{env.TODAYS_DATE}} " >> $GITHUB_STEP_SUMMARY
             echo " - ubuntu-latest installed with: " >> $GITHUB_STEP_SUMMARY
-            echo "    - $(java --version) " >> $GITHUB_STEP_SUMMARY
-            echo "    - $(mvn -v) " >> $GITHUB_STEP_SUMMARY
             echo "    - $(docker -v) " >> $GITHUB_STEP_SUMMARY
-            echo "    - $(python3 -V) " >> $GITHUB_STEP_SUMMARY
-            echo "    - $(pip3 -V) " >> $GITHUB_STEP_SUMMARY
-            echo "    - NPM version: $(npm -v) " >> $GITHUB_STEP_SUMMARY
-            echo "    - Node version: $(node -v) " >> $GITHUB_STEP_SUMMARY
             echo " - Docker buildx configured with platforms: [${{env.DOCKER_BUILDX_PLATFORMS}}](https://docs.docker.com/reference/cli/docker/buildx/create/#platform) " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
             echo " - Variables info" >> $GITHUB_STEP_SUMMARY
@@ -184,119 +151,4 @@ jobs:
             echo "    - GitHub Attest:  ${{ steps.build.outputs.digest }} " >> $GITHUB_STEP_SUMMARY
             echo " " >> $GITHUB_STEP_SUMMARY
 
-  dockerImageTest:
-    name: "Docker image test"
-    runs-on: ubuntu-latest
-    needs: dockerPackage
-    steps:
-      - name: "Docker: authentication" 
-        id: config-docker
-        uses: docker/login-action@v4      # ref https://github.com/marketplace/actions/docker-login (Node 24)
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{secrets.DOCKERHUB_PASSWORD }}
-
-      - name: "Pull LATEST image"
-        run: |
-          docker pull ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:latest
-
-      - name: "Pull ${{needs.dockerPackage.outputs.image_todays_tag}} image"
-        continue-on-error: true
-        run: |
-          docker pull ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:${{needs.dockerPackage.outputs.image_todays_tag}}
-
-      - name: "Docker Test: Summary "
-        run: |
-          echo "# :ship: Docker: Pull Summary :pushpin:" >> $GITHUB_STEP_SUMMARY
-          echo " " >> $GITHUB_STEP_SUMMARY
-          echo " " >> $GITHUB_STEP_SUMMARY
-          echo " Pulled docker" >> $GITHUB_STEP_SUMMARY
-          echo " - ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:latest " >> $GITHUB_STEP_SUMMARY
-          echo " - ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:${{needs.dockerPackage.outputs.image_todays_tag}} " >> $GITHUB_STEP_SUMMARY
-
-  dockerSBOMvalidate:
-    name: "SBOM attestation validate"
-    runs-on: ubuntu-latest
-    needs: dockerImageTest
-    env:
-      BUILD_ID: "ga-${{github.run_number}}"
-    steps:
-      - name: "Docker: Set up Buildx"
-        uses: docker/setup-buildx-action@v4
-
-      - name: "Docker: authentication"
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: "Env vars and info"
-        id: set_var
-        run: |
-          echo "ARTIFACT_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
-          echo "ARTIFACT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-          echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-          echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: "Validate: SBOM attestation on tag - Latest image"
-        run: |
-          IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.BUILD_NAME }}:latest"
-          # Verify image has an SBOM attestation (from build with sbom: true)
-          SBOM_JSON=$(docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' 2>/dev/null || true)
-          if [ -z "$SBOM_JSON" ] || [ "$SBOM_JSON" = "null" ]; then
-            echo "::error::SBOM attestation not found for $IMAGE"
-            exit 1
-          fi
-          echo "SBOM attestation present for $IMAGE"
-          echo "$SBOM_JSON" | head -c 200
-          echo "..."
-        
-      - name: "Validate: SBOM attestation on tag - ${{env.BUILD_ID}}"
-        run: |
-          IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.BUILD_NAME }}:${{env.BUILD_ID}}"
-          # Verify image has an SBOM attestation (from build with sbom: true)
-          SBOM_JSON=$(docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' 2>/dev/null || true)
-          if [ -z "$SBOM_JSON" ] || [ "$SBOM_JSON" = "null" ]; then
-            echo "::error::SBOM attestation not found for $IMAGE"
-            exit 1
-          fi
-          echo "SBOM attestation present for $IMAGE"
-          echo "$SBOM_JSON" | head -c 200
-          echo "..."
-
-      - name: "Validate: SBOM attestation on tag - ${{env.TODAYS_DATE}}"
-        run: |
-          IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.BUILD_NAME }}:${{env.TODAYS_DATE}}"
-          # Verify image has an SBOM attestation (from build with sbom: true)
-          SBOM_JSON=$(docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' 2>/dev/null || true)
-          if [ -z "$SBOM_JSON" ] || [ "$SBOM_JSON" = "null" ]; then
-            echo "::error::SBOM attestation not found for $IMAGE"
-            exit 1
-          fi
-          echo "SBOM attestation present for $IMAGE"
-          echo "$SBOM_JSON" | head -c 200
-          echo "..."
-
-      - name: "SBOM Info"
-        run: |
-          echo "## SBOM Info" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          for TAG in "latest" "${{ env.BUILD_ID }}" "${{ env.TODAYS_DATE }}"; do
-            IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.BUILD_NAME }}:${TAG}"
-            echo "### \`${IMAGE}\`" >> $GITHUB_STEP_SUMMARY
-            SBOM_JSON=$(docker buildx imagetools inspect "$IMAGE" --format '{{ json .SBOM }}' 2>/dev/null || true)
-            if [ -n "$SBOM_JSON" ] && [ "$SBOM_JSON" != "null" ]; then
-              echo "SBOM attestation present." >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo '```json' >> $GITHUB_STEP_SUMMARY
-              printf '%s' "$SBOM_JSON" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo '```' >> $GITHUB_STEP_SUMMARY
-            else
-              echo "SBOM attestation not found or could not inspect." >> $GITHUB_STEP_SUMMARY
-            fi
-            echo "" >> $GITHUB_STEP_SUMMARY
-          done
-
+  
