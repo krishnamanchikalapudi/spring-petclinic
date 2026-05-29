@@ -12,13 +12,13 @@ permissions:
   attestations: write
   pages: write
 env:
-  BUILD_NAME: "spring-petclinic"
+  BUILD_NAME: "bootcamp-spring-petclinic"
   DOCKER_REGISTRY: 'docker.io'
   DOCKER_ORG: 'krishnamanchikalapudi'
   DEFAULT_WORKSPACE: "${{github.workspace}}"  # /home/runner/work/spring-petclinic/spring-petclinic
 jobs:
-  dockerPackage:
-    name: "Docker package"
+  defaultPackage:
+    name: "Default package"
     runs-on: ubuntu-latest # https://github.com/actions/runner-images
     outputs:
       image_todays_tag: ${{ steps.set_var.outputs.TODAYS_DATE }}
@@ -26,9 +26,8 @@ jobs:
       matrix:
         java: [ '25' ]
     env:
-        BUILD_ID: "ga-${{github.run_number}}"
+        BUILD_ID: "" # "ga-${{github.run_number}}"
         DOCKER_BUILDX_PLATFORMS: 'linux/amd64,linux/arm64'
-        DOCKER_METADATA_JSON: 'build-metadata.json'
     defaults:
        run:
          working-directory: "${{env.DEFAULT_WORKSPACE}}"
@@ -49,8 +48,6 @@ jobs:
           run: |
             echo "ARTIFACT_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
             echo "ARTIFACT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-            echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-            echo "TODAYS_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
         - name: "Docker: authentication" 
           id: config-docker
@@ -74,24 +71,6 @@ jobs:
           run: |
             mvn clean package -DskipTests -Denforcer.skip
 
-        - name: "Evidence: GitHub Attest for JAR artifact"
-          continue-on-error: true
-          uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
-          with:
-            subject-path: "target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar"
-            github-token: ${{secrets.GITHUB_TOKEN}} 
-            show-summary: true
-
-        - name: "Optional: list files"
-          run: |
-            tree .
-
-        - name: Extract metadata
-          id: meta
-          uses: docker/metadata-action@v6
-          with:
-            images: ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-
         - name: "Docker build and push"
           id: build
           uses: docker/build-push-action@v7     # https://github.com/docker/build-push-action (Node 24)  
@@ -107,48 +86,6 @@ jobs:
             build-args: |
               JAR_FILE=./target/${{env.ARTIFACT_NAME}}-${{env.ARTIFACT_VERSION}}.jar
             tags: |
-              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
-              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}
-              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:jdk-${{matrix.java}}
-              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
-              ${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.ARTIFACT_VERSION}}
-              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:jdk-${{matrix.java}}
-              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.TODAYS_DATE}}
-              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:${{env.BUILD_ID}}
-              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.ARTIFACT_NAME}}:latest
-     
-        - name: "Docker: image list"
-          run: |
-            docker image ls
+              ${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:${{env.BUILD_ID}}
+              ${{ env.DOCKER_REGISTRY }}/${{env.DOCKER_ORG}}/${{env.BUILD_NAME}}:${{env.BUILD_ID}}
 
-        - name: "Evidence: GitHub Attest for docker image"
-          continue-on-error: true
-          uses: actions/attest-build-provenance@v3     # https://github.com/marketplace/actions/attest-build-provenance
-          with:
-            subject-name: '${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_ORG }}/${{ env.ARTIFACT_NAME }}'
-            subject-digest: ${{ steps.build.outputs.digest }}
-            github-token: ${{ secrets.GITHUB_TOKEN }}
-            push-to-registry: true
-            show-summary: true
-
-        - name: "Docker: Summary "
-          run: |
-            echo "# :ship: Docker: Summary :pushpin:" >> $GITHUB_STEP_SUMMARY
-            echo " " >> $GITHUB_STEP_SUMMARY
-            echo " " >> $GITHUB_STEP_SUMMARY
-            echo " Build on: ${{env.TODAYS_DATE}} " >> $GITHUB_STEP_SUMMARY
-            echo " - ubuntu-latest installed with: " >> $GITHUB_STEP_SUMMARY
-            echo "    - $(docker -v) " >> $GITHUB_STEP_SUMMARY
-            echo " - Docker buildx configured with platforms: [${{env.DOCKER_BUILDX_PLATFORMS}}](https://docs.docker.com/reference/cli/docker/buildx/create/#platform) " >> $GITHUB_STEP_SUMMARY
-            echo " " >> $GITHUB_STEP_SUMMARY
-            echo " - Variables info" >> $GITHUB_STEP_SUMMARY
-            echo "    - Build Name: ${{env.BUILD_NAME}} " >> $GITHUB_STEP_SUMMARY
-            echo "    - Build ID: ${{env.BUILD_ID}} " >> $GITHUB_STEP_SUMMARY
-            echo "    - Artifact Name: ${{env.ARTIFACT_NAME}} " >> $GITHUB_STEP_SUMMARY
-            echo "    - Artifact Version: ${{env.ARTIFACT_VERSION}} " >> $GITHUB_STEP_SUMMARY
-            echo "    - Docker Path: [https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories](https://hub.docker.com/orgs/${{env.DOCKER_ORG}}/repositories) " >> $GITHUB_STEP_SUMMARY
-            echo "    - GitHub Attest:  ${{ steps.build.outputs.digest }} " >> $GITHUB_STEP_SUMMARY
-            echo " " >> $GITHUB_STEP_SUMMARY
-
-  

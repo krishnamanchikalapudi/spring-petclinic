@@ -1,12 +1,18 @@
 # BOOTCAMP: Agentic AI Systems with Spring PetClinic
 
-![Book Cover](amazon_url)
+<a href="https://a.co/d/04n6VGZM" target='_new'>
+<table>
+<tr>
+<td><img src='./images/light_theme_front_cover.png' alt='Front Cover'/></td>
+<td><img src='./images/light_theme_back_cover_kindle.jpg' alt='Back Cover'/></td>
+</tr>
+</table>
+</a>
 
-## Practitioner's Guide to Agentic Architecture on Spring PetClinic
 ### 4-Day Hands-On Bootcamp
 - **Authors:** Anil Kumar Veldurthi, Krishna Manchikalapudi  
 - **Format:** In-person / Virtual instructor-led  
-- **Stack:** Java 21, Spring Boot 4.x, Ollama, PostgreSQL + pgvector, Neo4j, Redis, Kafka, Kubernetes
+- **Stack:** Follow the [prequisite](./PRE-STEP.md) instructions
 
 ---
 
@@ -18,32 +24,13 @@
 | 10:00 – 11:30 | **Session 1** | 90 min |
 | 11:30 – 11:45 | Break + Q&A | 15 min |
 | 11:45 – 12:00 | Buffer / Catch-up Lab | 15 min |
-| 12:00 – 12:30 | Lunch | 30 min |
+| 12:00 – 12:30 | Lunch for In-person attendee | 30 min |
 | 12:30 – 14:00 | **Session 2** | 90 min |
 | 14:00 – 14:15 | Break + Coffee + Q&A | 15 min |
 | 14:15 – 16:00 | **Session 3** | 105 min |
 | 16:00 – 17:00 | Day Wrap / Questions / Retrospective | 60 min |
 
 > Each session = **Presentation (30–40 min)** + **Live Demo (20–25 min)** + **Hands-On Lab (25–30 min)**
-
----
-
-## Prerequisites
-
-**Before Day 1 — participants must have:**
-- Java 21 + Maven 3.9+ installed
-- Docker Desktop running (8GB+ RAM allocated)
-- Git + IDE (VS Code - recommended, IntelliJ IDEA)
-- Ollama installed: `curl -fsSL https://ollama.ai/install.sh | sh`
-- Models pre-pulled (do this before arrival — ~1GB total):
-  ```bash
-  ollama pull qwen3.5:0.8b
-  ollama pull nomic-embed-text
-  ```
-- Clone the starter repo:
-  ```bash
-  git clone -b bootcamp https://github.com/krishnamanchikalapudi/spring-petclinic.git
-  ```
 
 ---
 
